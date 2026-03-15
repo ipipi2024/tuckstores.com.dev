@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import SalesTrendChart from '@/components/SalesTrendChart'
 import TopProductsChart from '@/components/TopProductsChart'
+import CategoryBreakdownChart from '@/components/CategoryBreakdownChart'
 
 export default async function AnalyticsPage() {
   const supabase = await createClient()
@@ -12,7 +13,7 @@ export default async function AnalyticsPage() {
   from.setDate(from.getDate() - 89)
   from.setHours(0, 0, 0, 0)
 
-  const [{ data: sales }, { data: saleItems }] = await Promise.all([
+  const [{ data: sales }, { data: saleItems }, { data: categoryItems }] = await Promise.all([
     supabase
       .from('sales')
       .select('id, total_amount, created_at')
@@ -22,6 +23,10 @@ export default async function AnalyticsPage() {
     supabase
       .from('sale_items')
       .select('product_id, quantity, subtotal, products(name), sales(created_at, user_id)')
+      .eq('sales.user_id', user.id),
+    supabase
+      .from('sale_items')
+      .select('quantity, subtotal, products(id, name, product_categories(name)), sales(user_id)')
       .eq('sales.user_id', user.id),
   ])
 
@@ -54,6 +59,19 @@ export default async function AnalyticsPage() {
   }
   const topProducts = Object.values(byProduct).sort((a, b) => b.revenue - a.revenue).slice(0, 10)
 
+  // ── category breakdown ───────────────────────────────────────────
+  const byCategory: Record<string, { name: string; revenue: number; quantity: number }> = {}
+  for (const item of categoryItems ?? []) {
+    const prod = item.products as any
+    const sale = item.sales as any
+    if (!prod || sale?.user_id !== user.id) continue
+    const catName = prod.product_categories?.name ?? 'Uncategorised'
+    if (!byCategory[catName]) byCategory[catName] = { name: catName, revenue: 0, quantity: 0 }
+    byCategory[catName].revenue += Number(item.subtotal ?? 0)
+    byCategory[catName].quantity += Number(item.quantity ?? 0)
+  }
+  const categories = Object.values(byCategory).sort((a, b) => b.revenue - a.revenue)
+
   return (
     <div className="space-y-8">
       <div>
@@ -69,6 +87,11 @@ export default async function AnalyticsPage() {
       <div className="border dark:border-neutral-700 rounded-lg p-5 bg-white dark:bg-neutral-900 space-y-4">
         <h2 className="text-sm font-medium text-gray-700 dark:text-neutral-300 uppercase tracking-wide">Top products</h2>
         <TopProductsChart products={topProducts} />
+      </div>
+
+      <div className="border dark:border-neutral-700 rounded-lg p-5 bg-white dark:bg-neutral-900 space-y-4">
+        <h2 className="text-sm font-medium text-gray-700 dark:text-neutral-300 uppercase tracking-wide">Sales by category</h2>
+        <CategoryBreakdownChart categories={categories} />
       </div>
     </div>
   )
