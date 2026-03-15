@@ -21,6 +21,7 @@ export default function NewPurchaseForm({
   const [items, setItems] = useState<Item[]>([
     { product_id: '', quantity: '1', unit_cost: '' },
   ])
+  const [supplierId, setSupplierId] = useState('')
 
   function addItem() {
     setItems((prev) => [...prev, { product_id: '', quantity: '1', unit_cost: '' }])
@@ -61,12 +62,25 @@ export default function NewPurchaseForm({
               <label className="block text-sm font-medium mb-1">
                 Supplier <span className="text-gray-400 font-normal">(optional)</span>
               </label>
-              <select name="supplier_id" className={`w-full ${selectClass}`}>
-                <option value="">No supplier</option>
+              <select
+                name="supplier_id"
+                className={`w-full ${selectClass}`}
+                value={supplierId}
+                onChange={(e) => setSupplierId(e.target.value)}
+              >
+                <option value="">Custom / one-off supplier</option>
                 {suppliers.map((s) => (
                   <option key={s.id} value={s.id}>{s.name}</option>
                 ))}
               </select>
+              {!supplierId && (
+                <input
+                  name="supplier_name"
+                  type="text"
+                  placeholder="Enter supplier name (optional)"
+                  className={`mt-2 ${inputClass}`}
+                />
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Purchase date</label>
