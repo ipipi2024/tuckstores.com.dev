@@ -3,7 +3,7 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import ThemeToggle from '@/components/ThemeToggle'
-import { completeSale, registerWalkInCustomer } from './actions'
+import { completeSale, registerWalkInCustomer, linkSaleToCustomer } from './actions'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -14,6 +14,11 @@ type Product = {
   stock: number | null
 }
 
+type Customer = {
+  id: string
+  name: string
+}
+
 type CartItem = {
   product_id: string
   name: string
@@ -22,10 +27,71 @@ type CartItem = {
 }
 
 type PostSaleState =
-  | { phase: 'prompt'; total: number }
-  | { phase: 'form';   total: number }
+  | { phase: 'prompt'; total: number; saleId: string }
+  | { phase: 'form';   total: number; saleId: string }
+  | { phase: 'select'; total: number; saleId: string }
   | { phase: 'done';   name: string }
   | null
+
+// ─── CustomerPicker ───────────────────────────────────────────────────────────
+
+type CustomerPickerProps = {
+  customers: Customer[]
+  onSelect: (customer: Customer) => void
+  onClose: () => void
+  loading?: boolean
+  error?: string | null
+}
+
+function CustomerPicker({ customers, onSelect, onClose, loading, error }: CustomerPickerProps) {
+  const [query, setQuery] = useState('')
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => { setTimeout(() => inputRef.current?.focus(), 80) }, [])
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q) return customers
+    return customers.filter((c) => c.name.toLowerCase().includes(q))
+  }, [customers, query])
+
+  return (
+    <div className="w-full space-y-3">
+      <input
+        ref={inputRef}
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Search customers…"
+        className="w-full border dark:border-neutral-700 rounded-xl px-4 py-2.5 text-sm bg-transparent focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white dark:bg-neutral-800 placeholder-gray-400"
+      />
+      {error && (
+        <p className="text-xs text-red-500 bg-red-50 dark:bg-red-950 px-3 py-2 rounded-lg">{error}</p>
+      )}
+      <div className="max-h-48 overflow-y-auto space-y-0.5 rounded-xl border dark:border-neutral-700">
+        {filtered.length === 0 ? (
+          <p className="px-4 py-3 text-sm text-gray-400 dark:text-neutral-500">No customers found</p>
+        ) : (
+          filtered.map((c) => (
+            <button
+              key={c.id}
+              onClick={() => onSelect(c)}
+              disabled={loading}
+              className="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors disabled:opacity-50"
+            >
+              {c.name}
+            </button>
+          ))
+        )}
+      </div>
+      <button
+        onClick={onClose}
+        className="w-full py-1.5 text-sm text-gray-400 dark:text-neutral-500 hover:text-black dark:hover:text-white transition-colors"
+      >
+        Back
+      </button>
+    </div>
+  )
+}
 
 // ─── CartPanel ────────────────────────────────────────────────────────────────
 
@@ -141,10 +207,13 @@ function CartPanel({
 
 type PostSalePanelProps = {
   postSale: PostSaleState
+  customers: Customer[]
   regName: string
   setRegName: (v: string) => void
   onRegister: () => void
   onRequestForm: () => void
+  onRequestSelect: () => void
+  onLinkCustomer: (customer: Customer) => void
   onSkip: () => void
   regSubmitting: boolean
   regError: string | null
@@ -152,8 +221,8 @@ type PostSalePanelProps = {
 }
 
 function PostSalePanel({
-  postSale, regName, setRegName,
-  onRegister, onRequestForm, onSkip,
+  postSale, customers, regName, setRegName,
+  onRegister, onRequestForm, onRequestSelect, onLinkCustomer, onSkip,
   regSubmitting, regError, regInputRef,
 }: PostSalePanelProps) {
   if (!postSale) return null
@@ -162,7 +231,7 @@ function PostSalePanel({
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-2 p-8 text-center">
         <span className="text-3xl">✓</span>
-        <p className="font-semibold">{postSale.name} registered</p>
+        <p className="font-semibold">{postSale.name}</p>
         <p className="text-sm text-gray-400 dark:text-neutral-500">Ready for next sale</p>
       </div>
     )
@@ -174,13 +243,21 @@ function PostSalePanel({
         <p className="text-green-600 dark:text-green-400 font-semibold text-sm">
           ✓ ${postSale.total.toFixed(2)} recorded
         </p>
-        <p className="font-semibold text-base">Register this customer?</p>
+        <p className="font-semibold text-base">Link a customer?</p>
         <p className="text-xs text-gray-400 dark:text-neutral-500">
-          Name only for now — they can add details later
+          Optional — attach this sale to a customer
         </p>
       </div>
 
-      {postSale.phase === 'form' ? (
+      {postSale.phase === 'select' ? (
+        <CustomerPicker
+          customers={customers}
+          onSelect={onLinkCustomer}
+          onClose={onRequestForm.bind(null)}
+          loading={regSubmitting}
+          error={regError}
+        />
+      ) : postSale.phase === 'form' ? (
         <div className="w-full space-y-2.5">
           {regError && (
             <p className="text-xs text-red-500 bg-red-50 dark:bg-red-950 px-3 py-1.5 rounded-lg">{regError}</p>
@@ -208,12 +285,19 @@ function PostSalePanel({
           </button>
         </div>
       ) : (
+        // prompt phase
         <div className="w-full space-y-2.5">
           <button
-            onClick={onRequestForm}
+            onClick={onRequestSelect}
             className="w-full py-2.5 bg-black dark:bg-white text-white dark:text-black text-sm font-semibold rounded-xl hover:bg-gray-800 dark:hover:bg-gray-100 active:scale-[0.98] transition-all"
           >
-            Register
+            Select existing customer
+          </button>
+          <button
+            onClick={onRequestForm}
+            className="w-full py-2.5 border dark:border-neutral-700 text-sm font-semibold rounded-xl hover:bg-gray-50 dark:hover:bg-neutral-800 active:scale-[0.98] transition-all"
+          >
+            Register new customer
           </button>
           <button
             onClick={onSkip}
@@ -229,7 +313,7 @@ function PostSalePanel({
 
 // ─── POSScreen ────────────────────────────────────────────────────────────────
 
-export default function POSScreen({ products }: { products: Product[] }) {
+export default function POSScreen({ products, customers }: { products: Product[]; customers: Customer[] }) {
   // Cart state
   const [cart, setCart] = useState<CartItem[]>([])
   const [search, setSearch] = useState('')
@@ -237,7 +321,7 @@ export default function POSScreen({ products }: { products: Product[] }) {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Post-sale registration state
+  // Post-sale state
   const [postSale, setPostSale] = useState<PostSaleState>(null)
   const [regName, setRegName] = useState('')
   const [regSubmitting, setRegSubmitting] = useState(false)
@@ -324,22 +408,48 @@ export default function POSScreen({ products }: { products: Product[] }) {
       cart.map((i) => ({ product_id: i.product_id, quantity: i.quantity, unit_price: i.unit_price }))
     )
     setSubmitting(false)
-    if (result?.error) {
+    if ('error' in result) {
       setError(result.error)
     } else {
       setCart([])
       setCartOpen(false)
-      setPostSale({ phase: 'prompt', total })
+      setPostSale({ phase: 'prompt', total, saleId: result.saleId })
     }
   }
 
-  // Registration
+  // Post-sale: request form (register new)
   function requestRegForm() {
     if (!postSale || postSale.phase === 'done') return
-    setPostSale({ phase: 'form', total: (postSale as { total: number }).total })
+    const { total, saleId } = postSale as { total: number; saleId: string }
+    setPostSale({ phase: 'form', total, saleId })
     setRegSheetOpen(true)
   }
 
+  // Post-sale: request select existing
+  function requestSelectCustomer() {
+    if (!postSale || postSale.phase === 'done') return
+    const { total, saleId } = postSale as { total: number; saleId: string }
+    setPostSale({ phase: 'select', total, saleId })
+    setRegSheetOpen(true)
+  }
+
+  // Post-sale: link existing customer
+  async function handleLinkCustomer(customer: Customer) {
+    if (!postSale || postSale.phase === 'done') return
+    const { saleId } = postSale as { saleId: string }
+    setRegSubmitting(true)
+    setRegError(null)
+    const result = await linkSaleToCustomer(saleId, customer.id)
+    setRegSubmitting(false)
+    if (result?.error) {
+      setRegError(result.error)
+    } else {
+      setRegSheetOpen(false)
+      setPostSale({ phase: 'done', name: `Linked to ${customer.name}` })
+    }
+  }
+
+  // Post-sale: register new customer
   async function handleRegister() {
     if (!regName.trim() || regSubmitting) return
     setRegSubmitting(true)
@@ -352,7 +462,7 @@ export default function POSScreen({ products }: { products: Product[] }) {
       const name = regName.trim()
       setRegName('')
       setRegSheetOpen(false)
-      setPostSale({ phase: 'done', name })
+      setPostSale({ phase: 'done', name: `${name} registered` })
     }
   }
 
@@ -372,9 +482,11 @@ export default function POSScreen({ products }: { products: Product[] }) {
   }
 
   const postSalePanelProps: PostSalePanelProps = {
-    postSale, regName, setRegName,
+    postSale, customers, regName, setRegName,
     onRegister: handleRegister,
     onRequestForm: requestRegForm,
+    onRequestSelect: requestSelectCustomer,
+    onLinkCustomer: handleLinkCustomer,
     onSkip: skipRegistration,
     regSubmitting, regError, regInputRef,
   }
@@ -481,25 +593,31 @@ export default function POSScreen({ products }: { products: Product[] }) {
         {postSale?.phase === 'done' && (
           <div className="flex items-center gap-2.5 px-4 py-3.5">
             <span className="text-green-600 dark:text-green-400 text-lg">✓</span>
-            <span className="font-medium text-sm">{postSale.name} registered</span>
+            <span className="font-medium text-sm">{postSale.name}</span>
             <span className="text-xs text-gray-400 dark:text-neutral-500">· Ready for next sale</span>
           </div>
         )}
 
-        {/* Post-sale: prompt or form */}
-        {(postSale?.phase === 'prompt' || postSale?.phase === 'form') && (
+        {/* Post-sale: prompt / form / select */}
+        {(postSale?.phase === 'prompt' || postSale?.phase === 'form' || postSale?.phase === 'select') && (
           <div className="flex items-center gap-3 px-4 py-3">
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-green-600 dark:text-green-400">
                 ✓ ${postSale.total.toFixed(2)} recorded
               </p>
-              <p className="text-xs text-gray-500 dark:text-neutral-400">Register this customer?</p>
+              <p className="text-xs text-gray-500 dark:text-neutral-400">Link a customer?</p>
             </div>
             <button
-              onClick={requestRegForm}
-              className="flex-shrink-0 px-4 py-2 bg-black dark:bg-white text-white dark:text-black text-sm font-semibold rounded-xl hover:bg-gray-800 dark:hover:bg-gray-100 active:scale-95 transition-all"
+              onClick={requestSelectCustomer}
+              className="flex-shrink-0 px-3 py-2 border dark:border-neutral-700 text-sm font-semibold rounded-xl hover:bg-gray-50 dark:hover:bg-neutral-800 active:scale-95 transition-all"
             >
-              Register
+              Existing
+            </button>
+            <button
+              onClick={requestRegForm}
+              className="flex-shrink-0 px-3 py-2 bg-black dark:bg-white text-white dark:text-black text-sm font-semibold rounded-xl hover:bg-gray-800 dark:hover:bg-gray-100 active:scale-95 transition-all"
+            >
+              New
             </button>
             <button
               onClick={skipRegistration}
@@ -564,12 +682,12 @@ export default function POSScreen({ products }: { products: Product[] }) {
         </div>
       )}
 
-      {/* ── Mobile register sheet ── */}
-      {regSheetOpen && postSale?.phase === 'form' && (
+      {/* ── Mobile customer sheet (register new or select existing) ── */}
+      {regSheetOpen && (postSale?.phase === 'form' || postSale?.phase === 'select') && (
         <div
           role="dialog"
           aria-modal="true"
-          aria-label="Register customer"
+          aria-label={postSale.phase === 'select' ? 'Select customer' : 'Register customer'}
           className="lg:hidden fixed inset-0 z-50 flex flex-col justify-end"
           onClick={(e) => { if (e.target === e.currentTarget) skipRegistration() }}
         >
@@ -577,9 +695,11 @@ export default function POSScreen({ products }: { products: Product[] }) {
           <div className="relative bg-white dark:bg-neutral-950 rounded-t-2xl px-5 pt-5 pb-8 shadow-2xl space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-semibold text-base">Register customer</h3>
+                <h3 className="font-semibold text-base">
+                  {postSale.phase === 'select' ? 'Select existing customer' : 'Register new customer'}
+                </h3>
                 <p className="text-xs text-gray-400 dark:text-neutral-500 mt-0.5">
-                  Name only — they can add details later
+                  {postSale.phase === 'select' ? 'Link this sale to an existing customer' : 'Name only — they can add details later'}
                 </p>
               </div>
               <button
@@ -589,33 +709,42 @@ export default function POSScreen({ products }: { products: Product[] }) {
               >×</button>
             </div>
 
-            {regError && (
-              <p className="text-xs text-red-500 bg-red-50 dark:bg-red-950 px-3 py-2 rounded-lg">{regError}</p>
+            {postSale.phase === 'select' ? (
+              <CustomerPicker
+                customers={customers}
+                onSelect={handleLinkCustomer}
+                onClose={() => { const { total, saleId } = postSale; setPostSale({ phase: 'prompt', total, saleId }); setRegSheetOpen(false) }}
+                loading={regSubmitting}
+                error={regError}
+              />
+            ) : (
+              <>
+                {regError && (
+                  <p className="text-xs text-red-500 bg-red-50 dark:bg-red-950 px-3 py-2 rounded-lg">{regError}</p>
+                )}
+                <input
+                  ref={regInputRef}
+                  value={regName}
+                  onChange={(e) => setRegName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleRegister() }}
+                  placeholder="e.g. John Doe"
+                  className="w-full border dark:border-neutral-700 rounded-xl px-4 py-3 text-base bg-transparent focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white dark:bg-neutral-800 placeholder-gray-400"
+                />
+                <button
+                  onClick={handleRegister}
+                  disabled={!regName.trim() || regSubmitting}
+                  className="w-full py-3.5 bg-black dark:bg-white text-white dark:text-black font-semibold rounded-xl hover:bg-gray-800 dark:hover:bg-gray-100 active:scale-[0.98] disabled:opacity-50 transition-all text-base"
+                >
+                  {regSubmitting ? 'Saving…' : 'Save customer'}
+                </button>
+                <button
+                  onClick={skipRegistration}
+                  className="w-full py-1 text-sm text-gray-400 dark:text-neutral-500 hover:text-black dark:hover:text-white text-center transition-colors"
+                >
+                  Skip — don&apos;t register
+                </button>
+              </>
             )}
-
-            <input
-              ref={regInputRef}
-              value={regName}
-              onChange={(e) => setRegName(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleRegister() }}
-              placeholder="e.g. John Doe"
-              className="w-full border dark:border-neutral-700 rounded-xl px-4 py-3 text-base bg-transparent focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white dark:bg-neutral-800 placeholder-gray-400"
-            />
-
-            <button
-              onClick={handleRegister}
-              disabled={!regName.trim() || regSubmitting}
-              className="w-full py-3.5 bg-black dark:bg-white text-white dark:text-black font-semibold rounded-xl hover:bg-gray-800 dark:hover:bg-gray-100 active:scale-[0.98] disabled:opacity-50 transition-all text-base"
-            >
-              {regSubmitting ? 'Saving…' : 'Save customer'}
-            </button>
-
-            <button
-              onClick={skipRegistration}
-              className="w-full py-1 text-sm text-gray-400 dark:text-neutral-500 hover:text-black dark:hover:text-white text-center transition-colors"
-            >
-              Skip — don&apos;t register
-            </button>
           </div>
         </div>
       )}

@@ -7,7 +7,7 @@ export default async function POSPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const [{ data: productsRaw, error: productsError }, { data: stockData }] = await Promise.all([
+  const [{ data: productsRaw, error: productsError }, { data: stockData }, { data: customersData }] = await Promise.all([
     supabase
       .from('products')
       .select('id, name, selling_price')
@@ -15,6 +15,10 @@ export default async function POSPage() {
     supabase
       .from('product_stock')
       .select('product_id, stock_quantity'),
+    supabase
+      .from('customers')
+      .select('id, name')
+      .order('name'),
   ])
 
   // If selling_price column doesn't exist yet (migration not applied), fall back
@@ -38,5 +42,10 @@ export default async function POSPage() {
     stock: stockMap.get(p.id as string) ?? null,
   }))
 
-  return <POSScreen products={products} />
+  const customers = (customersData ?? []).map((c) => ({
+    id: c.id as string,
+    name: c.name as string,
+  }))
+
+  return <POSScreen products={products} customers={customers} />
 }
