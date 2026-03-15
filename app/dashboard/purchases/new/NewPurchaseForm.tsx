@@ -37,11 +37,14 @@ export default function NewPurchaseForm({
     return sum + qty * cost
   }, 0)
 
+  const inputClass = "w-full border rounded-md px-3 py-2 text-sm bg-transparent focus:outline-none focus:ring-2 focus:ring-black dark:border-neutral-700 dark:text-white dark:focus:ring-white dark:placeholder:text-neutral-500"
+  const selectClass = "border rounded-md px-3 py-2 text-sm bg-white dark:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-black dark:border-neutral-700 dark:text-white dark:focus:ring-white"
+
   return (
     <div className="min-h-screen p-8">
       <div className="max-w-2xl mx-auto space-y-6">
         <div>
-          <Link href="/dashboard/purchases" className="text-sm text-gray-400 hover:text-black">
+          <Link href="/dashboard/purchases" className="text-sm text-gray-400 dark:text-neutral-500 hover:text-black dark:hover:text-white">
             ← Purchases
           </Link>
           <h1 className="text-2xl font-semibold mt-1">New purchase</h1>
@@ -58,7 +61,7 @@ export default function NewPurchaseForm({
                 name="supplier_name"
                 type="text"
                 placeholder="e.g. Metro Cash & Carry"
-                className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                className={inputClass}
               />
             </div>
             <div>
@@ -68,7 +71,7 @@ export default function NewPurchaseForm({
                 type="date"
                 required
                 defaultValue={new Date().toISOString().split('T')[0]}
-                className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                className={inputClass}
               />
             </div>
           </div>
@@ -78,7 +81,7 @@ export default function NewPurchaseForm({
             <textarea
               name="notes"
               rows={2}
-              className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black resize-none"
+              className={`${inputClass} resize-none`}
             />
           </div>
 
@@ -89,14 +92,14 @@ export default function NewPurchaseForm({
               <button
                 type="button"
                 onClick={addItem}
-                className="text-sm text-black underline"
+                className="text-sm text-black dark:text-white underline"
               >
                 + Add item
               </button>
             </div>
 
             {/* Column headers */}
-            <div className="grid grid-cols-[1fr_80px_100px_32px] gap-2 text-xs text-gray-400 px-1">
+            <div className="grid grid-cols-[1fr_80px_100px_32px] gap-2 text-xs text-gray-400 dark:text-neutral-500 px-1">
               <span>Product</span>
               <span>Qty</span>
               <span>Unit cost</span>
@@ -114,7 +117,7 @@ export default function NewPurchaseForm({
                   value={item.product_id}
                   onChange={(e) => updateItem(index, 'product_id', e.target.value)}
                   required
-                  className="border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                  className={selectClass}
                 >
                   <option value="">Select product</option>
                   {products.map((p) => (
@@ -128,7 +131,7 @@ export default function NewPurchaseForm({
                   value={item.quantity}
                   onChange={(e) => updateItem(index, 'quantity', e.target.value)}
                   required
-                  className="border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                  className={inputClass}
                 />
 
                 <input
@@ -139,7 +142,7 @@ export default function NewPurchaseForm({
                   value={item.unit_cost}
                   onChange={(e) => updateItem(index, 'unit_cost', e.target.value)}
                   required
-                  className="border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                  className={inputClass}
                 />
 
                 <button
@@ -154,9 +157,9 @@ export default function NewPurchaseForm({
             ))}
 
             {/* Total */}
-            <div className="flex justify-end pt-2 border-t">
+            <div className="flex justify-end pt-2 border-t dark:border-neutral-700">
               <p className="text-sm font-medium">
-                Total: <span className="text-black">${total.toFixed(2)}</span>
+                Total: <span className="text-black dark:text-white">${total.toFixed(2)}</span>
               </p>
             </div>
           </div>
@@ -170,7 +173,7 @@ export default function NewPurchaseForm({
             </button>
             <Link
               href="/dashboard/purchases"
-              className="px-5 py-2 border text-sm rounded-md hover:bg-gray-50 transition-colors"
+              className="px-5 py-2 border dark:border-neutral-700 text-sm rounded-md hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors"
             >
               Cancel
             </Link>

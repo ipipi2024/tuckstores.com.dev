@@ -27,7 +27,7 @@ export default async function SignUpPage({
               name="email"
               type="email"
               required
-              className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+              className="w-full border rounded-md px-3 py-2 text-sm bg-transparent focus:outline-none focus:ring-2 focus:ring-black dark:border-neutral-700 dark:text-white dark:focus:ring-white dark:placeholder:text-neutral-500"
             />
           </div>
 
@@ -41,7 +41,7 @@ export default async function SignUpPage({
               type="password"
               required
               minLength={6}
-              className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+              className="w-full border rounded-md px-3 py-2 text-sm bg-transparent focus:outline-none focus:ring-2 focus:ring-black dark:border-neutral-700 dark:text-white dark:focus:ring-white"
             />
           </div>
 
@@ -53,9 +53,9 @@ export default async function SignUpPage({
           </button>
         </form>
 
-        <p className="text-sm text-center text-gray-500">
+        <p className="text-sm text-center text-gray-500 dark:text-neutral-400">
           Already have an account?{' '}
-          <Link href="/login" className="text-black underline">
+          <Link href="/login" className="text-black dark:text-white underline">
             Sign in
           </Link>
         </p>

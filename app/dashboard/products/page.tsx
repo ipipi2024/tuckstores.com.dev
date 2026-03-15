@@ -19,7 +19,7 @@ export default async function ProductsPage() {
       <div className="max-w-3xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <Link href="/dashboard" className="text-sm text-gray-400 hover:text-black">
+            <Link href="/dashboard" className="text-sm text-gray-400 dark:text-neutral-500 hover:text-black dark:hover:text-white">
               ← Dashboard
             </Link>
             <h1 className="text-2xl font-semibold mt-1">Products</h1>
@@ -33,23 +33,23 @@ export default async function ProductsPage() {
         </div>
 
         {!products || products.length === 0 ? (
-          <div className="text-center py-16 text-gray-400 border rounded-lg">
+          <div className="text-center py-16 text-gray-400 dark:text-neutral-500 border dark:border-neutral-700 rounded-lg">
             No products yet.{' '}
-            <Link href="/dashboard/products/new" className="text-black underline">
+            <Link href="/dashboard/products/new" className="text-black dark:text-white underline">
               Add your first one.
             </Link>
           </div>
         ) : (
-          <div className="divide-y border rounded-lg overflow-hidden">
+          <div className="divide-y dark:divide-neutral-700 border dark:border-neutral-700 rounded-lg overflow-hidden">
             {products.map((product) => (
-              <div key={product.id} className="flex items-center justify-between p-4 bg-white hover:bg-gray-50">
+              <div key={product.id} className="flex items-center justify-between p-4 bg-white dark:bg-neutral-900 hover:bg-gray-50 dark:hover:bg-neutral-800">
                 <div>
                   <p className="font-medium">{product.name}</p>
                   {product.description && (
-                    <p className="text-sm text-gray-500">{product.description}</p>
+                    <p className="text-sm text-gray-500 dark:text-neutral-400">{product.description}</p>
                   )}
                   {product.barcode && (
-                    <p className="text-xs text-gray-400 mt-0.5">Barcode: {product.barcode}</p>
+                    <p className="text-xs text-gray-400 dark:text-neutral-500 mt-0.5">Barcode: {product.barcode}</p>
                   )}
                 </div>
                 <form action={deleteProduct.bind(null, product.id)}>

@@ -17,47 +17,47 @@ export default async function DashboardPage() {
           <form action={signOut}>
             <button
               type="submit"
-              className="text-sm text-gray-500 hover:text-black underline"
+              className="text-sm text-gray-500 dark:text-neutral-400 hover:text-black dark:hover:text-white underline"
             >
               Sign out
             </button>
           </form>
         </div>
 
-        <p className="text-gray-600">
-          Signed in as <span className="font-medium text-black">{user.email}</span>
+        <p className="text-gray-600 dark:text-neutral-400">
+          Signed in as <span className="font-medium text-black dark:text-white">{user.email}</span>
         </p>
 
         <div className="grid grid-cols-1 gap-3 pt-2">
           <Link
             href="/dashboard/products"
-            className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors"
+            className="flex items-center justify-between p-4 border dark:border-neutral-700 rounded-lg hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors"
           >
             <div>
               <p className="font-medium">Products</p>
-              <p className="text-sm text-gray-500">Manage your product catalogue</p>
+              <p className="text-sm text-gray-500 dark:text-neutral-400">Manage your product catalogue</p>
             </div>
-            <span className="text-gray-400">→</span>
+            <span className="text-gray-400 dark:text-neutral-500">→</span>
           </Link>
           <Link
             href="/dashboard/purchases"
-            className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors"
+            className="flex items-center justify-between p-4 border dark:border-neutral-700 rounded-lg hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors"
           >
             <div>
               <p className="font-medium">Purchases</p>
-              <p className="text-sm text-gray-500">Record stock coming in and track inventory</p>
+              <p className="text-sm text-gray-500 dark:text-neutral-400">Record stock coming in and track inventory</p>
             </div>
-            <span className="text-gray-400">→</span>
+            <span className="text-gray-400 dark:text-neutral-500">→</span>
           </Link>
           <Link
             href="/dashboard/inventory"
-            className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors"
+            className="flex items-center justify-between p-4 border dark:border-neutral-700 rounded-lg hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors"
           >
             <div>
               <p className="font-medium">Inventory</p>
-              <p className="text-sm text-gray-500">View current stock levels and movement log</p>
+              <p className="text-sm text-gray-500 dark:text-neutral-400">View current stock levels and movement log</p>
             </div>
-            <span className="text-gray-400">→</span>
+            <span className="text-gray-400 dark:text-neutral-500">→</span>
           </Link>
         </div>
       </div>

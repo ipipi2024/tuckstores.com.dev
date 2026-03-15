@@ -8,7 +8,7 @@ export default function Home() {
         <div className="flex gap-4 justify-center">
           <Link
             href="/login"
-            className="px-5 py-2 rounded-md border text-sm font-medium hover:bg-gray-50 transition-colors"
+            className="px-5 py-2 rounded-md border text-sm font-medium hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors"
           >
             Sign in
           </Link>
