@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import SalesTrendChart from '@/components/SalesTrendChart'
 import TopProductsChart from '@/components/TopProductsChart'
 import CategoryBreakdownChart from '@/components/CategoryBreakdownChart'
+import CustomerInsights from '@/components/CustomerInsights'
 
 export default async function AnalyticsPage() {
   const supabase = await createClient()
@@ -13,7 +14,7 @@ export default async function AnalyticsPage() {
   from.setDate(from.getDate() - 89)
   from.setHours(0, 0, 0, 0)
 
-  const [{ data: sales }, { data: saleItems }, { data: categoryItems }] = await Promise.all([
+  const [{ data: sales }, { data: saleItems }, { data: categoryItems }, { data: customerSales }] = await Promise.all([
     supabase
       .from('sales')
       .select('id, total_amount, created_at')
@@ -28,6 +29,11 @@ export default async function AnalyticsPage() {
       .from('sale_items')
       .select('quantity, subtotal, products(id, name, product_categories(name)), sales(user_id)')
       .eq('sales.user_id', user.id),
+    supabase
+      .from('sales')
+      .select('id, total_amount, created_at, customer_id, customers(id, name)')
+      .eq('user_id', user.id)
+      .not('customer_id', 'is', null),
   ])
 
   // ── daily revenue ────────────────────────────────────────────────
@@ -72,6 +78,23 @@ export default async function AnalyticsPage() {
   }
   const categories = Object.values(byCategory).sort((a, b) => b.revenue - a.revenue)
 
+  // ── customer insights ────────────────────────────────────────────
+  const byCustomer: Record<string, { id: string; name: string; totalSpent: number; visits: number; lastVisit: string }> = {}
+  for (const sale of customerSales ?? []) {
+    const customer = sale.customers as any
+    if (!customer) continue
+    if (!byCustomer[customer.id]) {
+      byCustomer[customer.id] = { id: customer.id, name: customer.name, totalSpent: 0, visits: 0, lastVisit: sale.created_at }
+    }
+    byCustomer[customer.id].totalSpent += Number(sale.total_amount ?? 0)
+    byCustomer[customer.id].visits += 1
+    if (sale.created_at > byCustomer[customer.id].lastVisit) byCustomer[customer.id].lastVisit = sale.created_at
+  }
+  const topCustomers = Object.values(byCustomer)
+    .map((c) => ({ ...c, avgBasket: c.visits > 0 ? c.totalSpent / c.visits : 0 }))
+    .sort((a, b) => b.totalSpent - a.totalSpent)
+    .slice(0, 8)
+
   return (
     <div className="space-y-8">
       <div>
@@ -92,6 +115,11 @@ export default async function AnalyticsPage() {
       <div className="border dark:border-neutral-700 rounded-lg p-5 bg-white dark:bg-neutral-900 space-y-4">
         <h2 className="text-sm font-medium text-gray-700 dark:text-neutral-300 uppercase tracking-wide">Sales by category</h2>
         <CategoryBreakdownChart categories={categories} />
+      </div>
+
+      <div className="border dark:border-neutral-700 rounded-lg p-5 bg-white dark:bg-neutral-900 space-y-4">
+        <h2 className="text-sm font-medium text-gray-700 dark:text-neutral-300 uppercase tracking-wide">Top customers</h2>
+        <CustomerInsights customers={topCustomers} />
       </div>
     </div>
   )
