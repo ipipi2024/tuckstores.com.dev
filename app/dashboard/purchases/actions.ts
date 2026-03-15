@@ -9,7 +9,6 @@ export async function createPurchase(formData: FormData) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const supplier_name = formData.get('supplier_name') as string
   const supplier_id = formData.get('supplier_id') as string || null
   const purchase_date = formData.get('purchase_date') as string
   const notes = formData.get('notes') as string
@@ -31,7 +30,7 @@ export async function createPurchase(formData: FormData) {
   }
 
   const { error } = await supabase.rpc('create_purchase', {
-    p_supplier_name: supplier_name || null,
+    p_supplier_name: null,
     p_supplier_id: supplier_id,
     p_purchase_date: purchase_date,
     p_notes: notes || null,

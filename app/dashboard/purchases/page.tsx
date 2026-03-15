@@ -9,7 +9,7 @@ export default async function PurchasesPage() {
 
   const { data: purchases } = await supabase
     .from('purchases')
-    .select('*, purchase_items(*, products(name))')
+    .select('*, suppliers(name), purchase_items(*, products(name))')
     .order('purchase_date', { ascending: false })
 
   return (
@@ -43,7 +43,7 @@ export default async function PurchasesPage() {
                 <div className="flex items-center justify-between p-4 bg-white dark:bg-neutral-900">
                   <div>
                     <p className="font-medium">
-                      {purchase.supplier_name ?? 'Unknown supplier'}
+                      {(purchase as any).suppliers?.name ?? purchase.supplier_name ?? 'Unknown supplier'}
                     </p>
                     <p className="text-sm text-gray-500 dark:text-neutral-400">
                       {new Date(purchase.purchase_date).toLocaleDateString('en-GB', {

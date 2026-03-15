@@ -6,7 +6,7 @@ import NewPurchaseForm from './NewPurchaseForm'
 export default async function NewPurchasePage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>
+  searchParams: Promise<{ error?: string; supplier_id?: string }>
 }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -17,12 +17,13 @@ export default async function NewPurchasePage({
     supabase.from('suppliers').select('id, name').order('name'),
   ])
 
-  const { error } = await searchParams
+  const { error, supplier_id } = await searchParams
 
   return (
     <NewPurchaseForm
       products={products ?? []}
       suppliers={suppliers ?? []}
+      defaultSupplierId={supplier_id ?? ''}
       error={error}
       action={createPurchase}
     />

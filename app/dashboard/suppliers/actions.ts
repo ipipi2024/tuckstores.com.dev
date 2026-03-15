@@ -23,6 +23,27 @@ export async function addSupplier(formData: FormData) {
   redirect('/dashboard/suppliers')
 }
 
+// Quick-add a supplier from the purchase form and redirect back with the new supplier pre-selected
+export async function createQuickSupplier(formData: FormData) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  const name = (formData.get('name') as string).trim()
+  if (!name) redirect('/dashboard/purchases/new?error=Supplier+name+is+required')
+
+  const { data, error } = await supabase
+    .from('suppliers')
+    .insert({ user_id: user.id, name })
+    .select('id')
+    .single()
+
+  if (error) redirect(`/dashboard/purchases/new?error=${encodeURIComponent(error.message)}`)
+
+  revalidatePath('/dashboard/suppliers')
+  redirect(`/dashboard/purchases/new?supplier_id=${data.id}`)
+}
+
 export async function deleteSupplier(id: string) {
   const supabase = await createClient()
   await supabase.from('suppliers').delete().eq('id', id)
