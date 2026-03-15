@@ -39,4 +39,4 @@ body {
 .dark select            { border-color: #404040; color: #ffffff; background-color: #171717; }
 
 /* Collapsed desktop sidebar — overrides lg:pl-56 on main */
-body.sidebar-collapsed main { padding-left: 3.5rem; }
+body.sidebar-collapsed main { padding-left: 0; }

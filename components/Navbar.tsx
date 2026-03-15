@@ -16,7 +16,7 @@ import {
   Menu,
   X,
   ChevronLeft,
-  ChevronRight,
+  PanelLeftOpen,
 } from 'lucide-react'
 import ThemeToggle from './ThemeToggle'
 import { signOut } from '@/app/auth/actions'
@@ -61,52 +61,56 @@ export default function Navbar() {
   return (
     <>
       {/* ── Desktop sidebar ── */}
-      <aside className={`hidden lg:flex flex-col fixed inset-y-0 left-0 border-r dark:border-neutral-800 bg-white dark:bg-neutral-950 z-30 transition-all duration-300 ${collapsed ? 'w-14' : 'w-56'}`}>
-        <div className={`flex items-center border-b dark:border-neutral-800 h-14 ${collapsed ? 'justify-center px-0' : 'justify-between px-5'}`}>
-          {!collapsed && <span className="text-base font-bold tracking-tight">TuckStores</span>}
+      <aside className={`hidden lg:flex flex-col fixed inset-y-0 left-0 border-r dark:border-neutral-800 bg-white dark:bg-neutral-950 z-30 transition-all duration-300 w-56 ${collapsed ? '-translate-x-full' : 'translate-x-0'}`}>
+        <div className="flex items-center justify-between px-5 border-b dark:border-neutral-800 h-14">
+          <span className="text-base font-bold tracking-tight">TuckStores</span>
           <button
-            onClick={() => setCollapsed(c => !c)}
-            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            onClick={() => setCollapsed(true)}
+            aria-label="Collapse sidebar"
             className="text-gray-400 dark:text-neutral-500 hover:text-black dark:hover:text-white transition-colors"
           >
-            {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+            <ChevronLeft size={18} />
           </button>
         </div>
 
-        <nav className="flex-1 overflow-y-auto px-2 py-4 space-y-0.5">
+        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
           {nav.map(({ href, label, icon: Icon, exact }) => {
             const active = isActive(href, pathname, exact)
             return (
               <Link
                 key={href}
                 href={href}
-                title={collapsed ? label : undefined}
-                className={`flex items-center rounded-md text-sm transition-colors ${
-                  collapsed ? 'justify-center px-0 py-2' : 'gap-3 px-3 py-2'
-                } ${
+                className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
                   active
                     ? 'bg-black text-white dark:bg-white dark:text-black font-medium'
                     : 'text-gray-600 dark:text-neutral-400 hover:bg-gray-100 dark:hover:bg-neutral-800 hover:text-black dark:hover:text-white'
                 }`}
               >
                 <Icon size={16} strokeWidth={1.75} />
-                {!collapsed && label}
+                {label}
               </Link>
             )
           })}
         </nav>
 
-        <div className={`py-4 border-t dark:border-neutral-800 flex items-center ${collapsed ? 'justify-center px-0' : 'justify-between px-4'}`}>
+        <div className="px-4 py-4 border-t dark:border-neutral-800 flex items-center justify-between">
           <ThemeToggle />
-          {!collapsed && (
-            <form action={signOut}>
-              <button className="text-xs text-gray-400 dark:text-neutral-500 hover:text-black dark:hover:text-white transition-colors">
-                Sign out
-              </button>
-            </form>
-          )}
+          <form action={signOut}>
+            <button className="text-xs text-gray-400 dark:text-neutral-500 hover:text-black dark:hover:text-white transition-colors">
+              Sign out
+            </button>
+          </form>
         </div>
       </aside>
+
+      {/* ── Desktop floating re-open button (shown when collapsed) ── */}
+      <button
+        onClick={() => setCollapsed(false)}
+        aria-label="Expand sidebar"
+        className={`hidden lg:flex fixed top-4 left-4 z-40 items-center justify-center w-8 h-8 rounded-md bg-white dark:bg-neutral-900 border dark:border-neutral-700 shadow-sm text-gray-500 dark:text-neutral-400 hover:text-black dark:hover:text-white transition-all duration-300 ${collapsed ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+      >
+        <PanelLeftOpen size={16} />
+      </button>
 
       {/* ── Mobile top bar ── */}
       <header className="lg:hidden fixed top-0 inset-x-0 h-14 flex items-center justify-between px-4 border-b dark:border-neutral-800 bg-white dark:bg-neutral-950 z-40">
