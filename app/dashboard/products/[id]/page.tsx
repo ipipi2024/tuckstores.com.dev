@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { updateProduct } from '../actions'
+import CategorySelect from '../CategorySelect'
 
 export default async function EditProductPage({
   params,
@@ -17,12 +18,19 @@ export default async function EditProductPage({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: product } = await supabase
-    .from('products')
-    .select('*')
-    .eq('id', id)
-    .eq('user_id', user.id)
-    .single()
+  const [{ data: product }, { data: categories }] = await Promise.all([
+    supabase
+      .from('products')
+      .select('*, product_categories(name)')
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .single(),
+    supabase
+      .from('product_categories')
+      .select('name')
+      .eq('user_id', user.id)
+      .order('name'),
+  ])
 
   if (!product) notFound()
 
@@ -73,6 +81,14 @@ export default async function EditProductPage({
             min="0"
             defaultValue={product.selling_price ?? ''}
             className="w-full border rounded-md px-3 py-2 text-sm bg-transparent focus:outline-none focus:ring-2 focus:ring-black dark:border-neutral-700 dark:text-white dark:focus:ring-white dark:placeholder:text-neutral-500"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-1">Category</label>
+          <CategorySelect
+            categories={categories?.map((c) => c.name) ?? []}
+            defaultValue={product.product_categories?.name ?? ''}
           />
         </div>
 

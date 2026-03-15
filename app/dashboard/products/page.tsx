@@ -11,7 +11,7 @@ export default async function ProductsPage() {
 
   const { data: products } = await supabase
     .from('products')
-    .select('*')
+    .select('*, product_categories(name)')
     .order('created_at', { ascending: false })
 
   return (
@@ -54,6 +54,11 @@ export default async function ProductsPage() {
                       </p>
                     ) : (
                       <p className="text-xs text-gray-400 dark:text-neutral-500">No price set</p>
+                    )}
+                    {product.product_categories?.name && (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-neutral-800 text-gray-600 dark:text-neutral-400">
+                        {product.product_categories.name}
+                      </span>
                     )}
                     {product.barcode && (
                       <p className="text-xs text-gray-400 dark:text-neutral-500">Barcode: {product.barcode}</p>
