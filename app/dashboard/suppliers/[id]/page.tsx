@@ -95,28 +95,32 @@ export default async function SupplierDetailPage({
               const badge = stabilityBadge(prices)
               return (
                 <div key={name} className="border dark:border-neutral-700 rounded-lg p-4 bg-white dark:bg-neutral-900 space-y-3">
-                  <div className="flex items-start justify-between gap-2">
+                  {/* Name always gets full width */}
+                  <div>
                     <p className="text-sm font-medium">{name}</p>
                     {badge && (
-                      <span className={`text-xs px-1.5 py-0.5 rounded-full flex-shrink-0 ${badge.cls}`}>{badge.label}</span>
+                      <span className={`inline-block mt-1 text-xs px-1.5 py-0.5 rounded-full ${badge.cls}`}>{badge.label}</span>
                     )}
                   </div>
-                  <div className="flex items-end justify-between">
-                    <div className="flex gap-4 text-xs text-gray-500 dark:text-neutral-400">
-                      <div>
-                        <p>Min</p>
-                        <p className="tabular-nums font-medium text-black dark:text-white">R{min.toFixed(2)}</p>
-                      </div>
-                      <div>
-                        <p>Max</p>
-                        <p className="tabular-nums font-medium text-black dark:text-white">R{max.toFixed(2)}</p>
-                      </div>
-                      <div>
-                        <p>Latest</p>
-                        <p className="tabular-nums font-semibold text-black dark:text-white">R{latest.toFixed(2)}</p>
-                      </div>
+                  {/* Stats row */}
+                  <div className="flex gap-6 text-xs text-gray-500 dark:text-neutral-400">
+                    <div>
+                      <p>Min</p>
+                      <p className="tabular-nums font-medium text-black dark:text-white">R{min.toFixed(2)}</p>
                     </div>
-                    <PriceSparkline prices={prices} />
+                    <div>
+                      <p>Max</p>
+                      <p className="tabular-nums font-medium text-black dark:text-white">R{max.toFixed(2)}</p>
+                    </div>
+                    <div>
+                      <p>Latest</p>
+                      <p className="tabular-nums font-semibold text-black dark:text-white">R{latest.toFixed(2)}</p>
+                    </div>
+                  </div>
+                  {/* Trend line below — full width */}
+                  <div>
+                    <p className="text-xs text-gray-500 dark:text-neutral-400 mb-1">Trend</p>
+                    <PriceSparkline prices={prices} fullWidth />
                   </div>
                 </div>
               )
