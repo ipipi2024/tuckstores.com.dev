@@ -39,6 +39,16 @@ export default async function DashboardPage() {
             </div>
             <span className="text-gray-400">→</span>
           </Link>
+          <Link
+            href="/dashboard/purchases"
+            className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <div>
+              <p className="font-medium">Purchases</p>
+              <p className="text-sm text-gray-500">Record stock coming in and track inventory</p>
+            </div>
+            <span className="text-gray-400">→</span>
+          </Link>
         </div>
       </div>
     </div>
