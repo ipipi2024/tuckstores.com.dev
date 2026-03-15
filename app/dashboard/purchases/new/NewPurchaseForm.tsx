@@ -4,14 +4,17 @@ import Link from 'next/link'
 import { useState } from 'react'
 
 type Product = { id: string; name: string }
+type Supplier = { id: string; name: string }
 type Item = { product_id: string; quantity: string; unit_cost: string }
 
 export default function NewPurchaseForm({
   products,
+  suppliers,
   error,
   action,
 }: {
   products: Product[]
+  suppliers: Supplier[]
   error?: string
   action: (formData: FormData) => Promise<void>
 }) {
@@ -55,13 +58,15 @@ export default function NewPurchaseForm({
           {/* Header */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Supplier</label>
-              <input
-                name="supplier_name"
-                type="text"
-                placeholder="e.g. Metro Cash & Carry"
-                className={inputClass}
-              />
+              <label className="block text-sm font-medium mb-1">
+                Supplier <span className="text-gray-400 font-normal">(optional)</span>
+              </label>
+              <select name="supplier_id" className={`w-full ${selectClass}`}>
+                <option value="">No supplier</option>
+                {suppliers.map((s) => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Purchase date</label>
