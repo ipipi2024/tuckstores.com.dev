@@ -9,8 +9,7 @@ export default async function NewProductPage({
   const { error } = await searchParams
 
   return (
-    <div className="min-h-screen p-8">
-      <div className="max-w-lg mx-auto space-y-6">
+    <div className="max-w-lg mx-auto space-y-6">
         <div>
           <Link href="/dashboard/products" className="text-sm text-gray-400 dark:text-neutral-500 hover:text-black dark:hover:text-white">
             ← Products
@@ -75,7 +74,6 @@ export default async function NewProductPage({
             </Link>
           </div>
         </form>
-      </div>
     </div>
   )
 }

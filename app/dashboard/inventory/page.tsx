@@ -25,8 +25,7 @@ export default async function InventoryPage() {
   ])
 
   return (
-    <div className="min-h-screen p-8">
-      <div className="max-w-3xl mx-auto space-y-8">
+    <div className="max-w-3xl mx-auto space-y-8">
         <div>
           <Link href="/dashboard" className="text-sm text-gray-400 hover:text-black">
             ← Dashboard
@@ -83,7 +82,6 @@ export default async function InventoryPage() {
             </div>
           )}
         </div>
-      </div>
     </div>
   )
 }

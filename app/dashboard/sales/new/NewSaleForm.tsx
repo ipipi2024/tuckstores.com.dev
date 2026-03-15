@@ -37,11 +37,13 @@ export default function NewSaleForm({
     return sum + qty * price
   }, 0)
 
+  const inputClass = "w-full border rounded-md px-3 py-2 text-sm bg-transparent focus:outline-none focus:ring-2 focus:ring-black dark:border-neutral-700 dark:text-white dark:focus:ring-white dark:placeholder:text-neutral-500"
+  const selectClass = "border rounded-md px-3 py-2 text-sm bg-white dark:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-black dark:border-neutral-700 dark:text-white dark:focus:ring-white"
+
   return (
-    <div className="min-h-screen p-8">
-      <div className="max-w-2xl mx-auto space-y-6">
+    <div className="max-w-2xl mx-auto space-y-6">
         <div>
-          <Link href="/dashboard/sales" className="text-sm text-gray-400 hover:text-black">
+          <Link href="/dashboard/sales" className="text-sm text-gray-400 dark:text-neutral-500 hover:text-black dark:hover:text-white">
             ← Sales
           </Link>
           <h1 className="text-2xl font-semibold mt-1">New sale</h1>
@@ -56,7 +58,7 @@ export default function NewSaleForm({
               name="notes"
               type="text"
               placeholder="e.g. Morning shift, Table 4..."
-              className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+              className={inputClass}
             />
           </div>
 
@@ -67,13 +69,13 @@ export default function NewSaleForm({
               <button
                 type="button"
                 onClick={addItem}
-                className="text-sm text-black underline"
+                className="text-sm text-black dark:text-white underline"
               >
                 + Add item
               </button>
             </div>
 
-            <div className="grid grid-cols-[1fr_80px_100px_32px] gap-2 text-xs text-gray-400 px-1">
+            <div className="grid grid-cols-[1fr_80px_100px_32px] gap-2 text-xs text-gray-400 dark:text-neutral-500 px-1">
               <span>Product</span>
               <span>Qty</span>
               <span>Unit price</span>
@@ -90,7 +92,7 @@ export default function NewSaleForm({
                   value={item.product_id}
                   onChange={(e) => updateItem(index, 'product_id', e.target.value)}
                   required
-                  className="border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                  className={selectClass}
                 >
                   <option value="">Select product</option>
                   {products.map((p) => (
@@ -104,7 +106,7 @@ export default function NewSaleForm({
                   value={item.quantity}
                   onChange={(e) => updateItem(index, 'quantity', e.target.value)}
                   required
-                  className="border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                  className={inputClass}
                 />
 
                 <input
@@ -115,7 +117,7 @@ export default function NewSaleForm({
                   value={item.unit_price}
                   onChange={(e) => updateItem(index, 'unit_price', e.target.value)}
                   required
-                  className="border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                  className={inputClass}
                 />
 
                 <button
@@ -129,9 +131,9 @@ export default function NewSaleForm({
               </div>
             ))}
 
-            <div className="flex justify-end pt-2 border-t">
+            <div className="flex justify-end pt-2 border-t dark:border-neutral-700">
               <p className="text-sm font-medium">
-                Total: <span className="text-black">${total.toFixed(2)}</span>
+                Total: <span className="text-black dark:text-white">${total.toFixed(2)}</span>
               </p>
             </div>
           </div>
@@ -145,13 +147,12 @@ export default function NewSaleForm({
             </button>
             <Link
               href="/dashboard/sales"
-              className="px-5 py-2 border text-sm rounded-md hover:bg-gray-50 transition-colors"
+              className="px-5 py-2 border dark:border-neutral-700 text-sm rounded-md hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors"
             >
               Cancel
             </Link>
           </div>
         </form>
-      </div>
     </div>
   )
 }

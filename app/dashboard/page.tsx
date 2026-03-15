@@ -10,8 +10,7 @@ export default async function DashboardPage() {
   if (!user) redirect('/login')
 
   return (
-    <div className="min-h-screen p-8">
-      <div className="max-w-2xl mx-auto space-y-6">
+    <div className="max-w-2xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-semibold">Dashboard</h1>
           <form action={signOut}>
@@ -70,7 +69,6 @@ export default async function DashboardPage() {
             <span className="text-gray-400 dark:text-neutral-500">→</span>
           </Link>
         </div>
-      </div>
     </div>
   )
 }

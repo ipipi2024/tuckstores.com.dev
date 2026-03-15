@@ -41,8 +41,7 @@ export default function NewPurchaseForm({
   const selectClass = "border rounded-md px-3 py-2 text-sm bg-white dark:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-black dark:border-neutral-700 dark:text-white dark:focus:ring-white"
 
   return (
-    <div className="min-h-screen p-8">
-      <div className="max-w-2xl mx-auto space-y-6">
+    <div className="max-w-2xl mx-auto space-y-6">
         <div>
           <Link href="/dashboard/purchases" className="text-sm text-gray-400 dark:text-neutral-500 hover:text-black dark:hover:text-white">
             ← Purchases
@@ -179,7 +178,6 @@ export default function NewPurchaseForm({
             </Link>
           </div>
         </form>
-      </div>
     </div>
   )
 }

@@ -15,8 +15,7 @@ export default async function ProductsPage() {
     .order('created_at', { ascending: false })
 
   return (
-    <div className="min-h-screen p-8">
-      <div className="max-w-3xl mx-auto space-y-6">
+    <div className="max-w-3xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <Link href="/dashboard" className="text-sm text-gray-400 dark:text-neutral-500 hover:text-black dark:hover:text-white">
@@ -64,7 +63,6 @@ export default async function ProductsPage() {
             ))}
           </div>
         )}
-      </div>
     </div>
   )
 }
