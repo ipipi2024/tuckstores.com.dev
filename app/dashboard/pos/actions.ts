@@ -32,3 +32,21 @@ export async function completeSale(
   revalidatePath('/dashboard/inventory')
   return null
 }
+
+export async function registerWalkInCustomer(
+  name: string,
+): Promise<{ error: string } | null> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  const { error } = await supabase.from('customers').insert({
+    user_id: user.id,
+    name: name.trim(),
+  })
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/dashboard/customers')
+  return null
+}
