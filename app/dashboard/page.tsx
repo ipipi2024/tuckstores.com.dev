@@ -59,6 +59,16 @@ export default async function DashboardPage() {
             </div>
             <span className="text-gray-400 dark:text-neutral-500">→</span>
           </Link>
+          <Link
+            href="/dashboard/sales"
+            className="flex items-center justify-between p-4 border dark:border-neutral-700 rounded-lg hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors"
+          >
+            <div>
+              <p className="font-medium">Sales</p>
+              <p className="text-sm text-gray-500 dark:text-neutral-400">Record sales and update inventory</p>
+            </div>
+            <span className="text-gray-400 dark:text-neutral-500">→</span>
+          </Link>
         </div>
       </div>
     </div>
