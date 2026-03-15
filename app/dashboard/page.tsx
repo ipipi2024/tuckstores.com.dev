@@ -29,6 +29,16 @@ export default async function DashboardPage() {
 
         <div className="grid grid-cols-1 gap-3 pt-2">
           <Link
+            href="/dashboard/pos"
+            className="flex items-center justify-between p-4 bg-black dark:bg-white text-white dark:text-black rounded-lg hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
+          >
+            <div>
+              <p className="font-semibold">Point of Sale</p>
+              <p className="text-sm text-gray-300 dark:text-gray-700">Tap products to record a sale fast</p>
+            </div>
+            <span className="text-gray-400 dark:text-gray-600">→</span>
+          </Link>
+          <Link
             href="/dashboard/products"
             className="flex items-center justify-between p-4 border dark:border-neutral-700 rounded-lg hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors"
           >

@@ -48,6 +48,21 @@ export default async function NewProductPage({
           </div>
 
           <div>
+            <label htmlFor="selling_price" className="block text-sm font-medium mb-1">
+              Selling price
+            </label>
+            <input
+              id="selling_price"
+              name="selling_price"
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder="0.00"
+              className="w-full border rounded-md px-3 py-2 text-sm bg-transparent focus:outline-none focus:ring-2 focus:ring-black dark:border-neutral-700 dark:text-white dark:focus:ring-white dark:placeholder:text-neutral-500"
+            />
+          </div>
+
+          <div>
             <label htmlFor="barcode" className="block text-sm font-medium mb-1">
               Barcode
             </label>

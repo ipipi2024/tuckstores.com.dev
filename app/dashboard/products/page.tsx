@@ -47,18 +47,35 @@ export default async function ProductsPage() {
                   {product.description && (
                     <p className="text-sm text-gray-500 dark:text-neutral-400">{product.description}</p>
                   )}
-                  {product.barcode && (
-                    <p className="text-xs text-gray-400 dark:text-neutral-500 mt-0.5">Barcode: {product.barcode}</p>
-                  )}
+                  <div className="flex items-center gap-3 mt-0.5">
+                    {product.selling_price != null ? (
+                      <p className="text-sm font-medium text-black dark:text-white">
+                        ${Number(product.selling_price).toFixed(2)}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-gray-400 dark:text-neutral-500">No price set</p>
+                    )}
+                    {product.barcode && (
+                      <p className="text-xs text-gray-400 dark:text-neutral-500">Barcode: {product.barcode}</p>
+                    )}
+                  </div>
                 </div>
-                <form action={deleteProduct.bind(null, product.id)}>
-                  <button
-                    type="submit"
-                    className="text-sm text-red-400 hover:text-red-600"
+                <div className="flex items-center gap-3">
+                  <Link
+                    href={`/dashboard/products/${product.id}`}
+                    className="text-sm text-gray-400 hover:text-black dark:hover:text-white"
                   >
-                    Delete
-                  </button>
-                </form>
+                    Edit
+                  </Link>
+                  <form action={deleteProduct.bind(null, product.id)}>
+                    <button
+                      type="submit"
+                      className="text-sm text-red-400 hover:text-red-600"
+                    >
+                      Delete
+                    </button>
+                  </form>
+                </div>
               </div>
             ))}
           </div>
