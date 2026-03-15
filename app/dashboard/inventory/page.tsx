@@ -14,15 +14,21 @@ export default async function InventoryPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const [{ data: movements }, { data: stock }] = await Promise.all([
+  const [{ data: movements }, { data: stock }, { data: products }] = await Promise.all([
     supabase
       .from('inventory_movements')
       .select('*, products(name)')
       .order('created_at', { ascending: false }),
     supabase
       .from('product_stock')
-      .select('product_id, stock_quantity, products(name)'),
+      .select('product_id, stock_quantity'),
+    supabase
+      .from('products')
+      .select('id, name')
+      .eq('user_id', user.id),
   ])
+
+  const productNameById = Object.fromEntries((products ?? []).map((p) => [p.id, p.name]))
 
   return (
     <div className="max-w-3xl mx-auto space-y-8">
@@ -42,7 +48,7 @@ export default async function InventoryPage() {
           <div className="border dark:border-neutral-700 rounded-lg overflow-hidden divide-y dark:divide-neutral-700">
             {stock.map((row: any) => (
               <div key={row.product_id} className="flex items-center justify-between px-4 py-3 bg-white dark:bg-neutral-900">
-                <span className="text-sm font-medium">{row.products?.name}</span>
+                <span className="text-sm font-medium">{productNameById[row.product_id] ?? '—'}</span>
                 <span className={`text-sm font-semibold ${Number(row.stock_quantity) <= 0 ? 'text-red-500' : 'text-green-600'}`}>
                   {row.stock_quantity} units
                 </span>
