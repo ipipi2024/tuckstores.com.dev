@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { addCustomer } from '../actions'
+import SubmitButton from './SubmitButton'
 
 export default async function NewCustomerPage({
   searchParams,
@@ -64,12 +65,7 @@ export default async function NewCustomerPage({
         </div>
 
         <div className="flex gap-3 pt-2">
-          <button
-            type="submit"
-            className="px-5 py-2 bg-black text-white text-sm rounded-md hover:bg-gray-800 transition-colors"
-          >
-            Save customer
-          </button>
+          <SubmitButton />
           <Link
             href="/dashboard/customers"
             className="px-5 py-2 border dark:border-neutral-700 text-sm rounded-md hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors"
