@@ -12,16 +12,17 @@ export default async function NewSalePage({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: products } = await supabase
-    .from('products')
-    .select('id, name')
-    .order('name')
+  const [{ data: products }, { data: customers }] = await Promise.all([
+    supabase.from('products').select('id, name').order('name'),
+    supabase.from('customers').select('id, name').order('name'),
+  ])
 
   const { error } = await searchParams
 
   return (
     <NewSaleForm
       products={products ?? []}
+      customers={customers ?? []}
       error={error}
       action={createSale}
     />

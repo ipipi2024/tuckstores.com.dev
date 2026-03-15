@@ -10,6 +10,7 @@ export async function createSale(formData: FormData) {
   if (!user) redirect('/login')
 
   const notes = formData.get('notes') as string
+  const customer_id = formData.get('customer_id') as string || null
 
   const items: { product_id: string; quantity: number; unit_price: number }[] = []
   let i = 0
@@ -29,6 +30,7 @@ export async function createSale(formData: FormData) {
   const { error } = await supabase.rpc('create_sale', {
     p_notes: notes || null,
     p_items: items,
+    p_customer_id: customer_id,
   })
 
   if (error) redirect(`/dashboard/sales/new?error=${encodeURIComponent(error.message)}`)

@@ -4,14 +4,17 @@ import Link from 'next/link'
 import { useState } from 'react'
 
 type Product = { id: string; name: string }
+type Customer = { id: string; name: string }
 type Item = { product_id: string; quantity: string; unit_price: string }
 
 export default function NewSaleForm({
   products,
+  customers,
   error,
   action,
 }: {
   products: Product[]
+  customers: Customer[]
   error?: string
   action: (formData: FormData) => Promise<void>
 }) {
@@ -52,6 +55,18 @@ export default function NewSaleForm({
         {error && <p className="text-sm text-red-500">{error}</p>}
 
         <form action={action} className="space-y-6">
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              Customer <span className="text-gray-400 font-normal">(optional)</span>
+            </label>
+            <select name="customer_id" className={selectClass}>
+              <option value="">Walk-in / no customer</option>
+              {customers.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+
           <div>
             <label className="block text-sm font-medium mb-1">Notes</label>
             <input
