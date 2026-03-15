@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import SalesTrendChart from '@/components/SalesTrendChart'
@@ -97,9 +98,14 @@ export default async function AnalyticsPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-semibold">Analytics</h1>
-        <p className="text-sm text-gray-500 dark:text-neutral-400 mt-0.5">Last 90 days</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold">Analytics</h1>
+          <p className="text-sm text-gray-500 dark:text-neutral-400 mt-0.5">Last 90 days</p>
+        </div>
+        <Link href="/dashboard/analytics/prices" className="text-sm text-gray-500 dark:text-neutral-400 hover:text-black dark:hover:text-white border dark:border-neutral-700 px-3 py-1.5 rounded-md transition-colors">
+          Price tracker →
+        </Link>
       </div>
 
       <div className="border dark:border-neutral-700 rounded-lg p-5 bg-white dark:bg-neutral-900 space-y-2">
