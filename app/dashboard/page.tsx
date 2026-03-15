@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { signOut } from '@/app/auth/actions'
@@ -26,6 +27,19 @@ export default async function DashboardPage() {
         <p className="text-gray-600">
           Signed in as <span className="font-medium text-black">{user.email}</span>
         </p>
+
+        <div className="grid grid-cols-1 gap-3 pt-2">
+          <Link
+            href="/dashboard/products"
+            className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <div>
+              <p className="font-medium">Products</p>
+              <p className="text-sm text-gray-500">Manage your product catalogue</p>
+            </div>
+            <span className="text-gray-400">→</span>
+          </Link>
+        </div>
       </div>
     </div>
   )
