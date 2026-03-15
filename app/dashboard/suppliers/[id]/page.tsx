@@ -85,8 +85,46 @@ export default async function SupplierDetailPage({
       {priceRows.length > 0 && (
         <div className="space-y-3">
           <h2 className="font-medium text-gray-700 dark:text-neutral-300">Price tracker</h2>
-          <div className="border dark:border-neutral-700 rounded-lg overflow-hidden divide-y dark:divide-neutral-700">
-            {/* Header */}
+          {/* Mobile: cards */}
+          <div className="sm:hidden space-y-3">
+            {priceRows.map(({ name, entries }) => {
+              const prices = entries.map((e) => e.cost)
+              const min = Math.min(...prices)
+              const max = Math.max(...prices)
+              const latest = prices[prices.length - 1]
+              const badge = stabilityBadge(prices)
+              return (
+                <div key={name} className="border dark:border-neutral-700 rounded-lg p-4 bg-white dark:bg-neutral-900 space-y-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-sm font-medium">{name}</p>
+                    {badge && (
+                      <span className={`text-xs px-1.5 py-0.5 rounded-full flex-shrink-0 ${badge.cls}`}>{badge.label}</span>
+                    )}
+                  </div>
+                  <div className="flex items-end justify-between">
+                    <div className="flex gap-4 text-xs text-gray-500 dark:text-neutral-400">
+                      <div>
+                        <p>Min</p>
+                        <p className="tabular-nums font-medium text-black dark:text-white">R{min.toFixed(2)}</p>
+                      </div>
+                      <div>
+                        <p>Max</p>
+                        <p className="tabular-nums font-medium text-black dark:text-white">R{max.toFixed(2)}</p>
+                      </div>
+                      <div>
+                        <p>Latest</p>
+                        <p className="tabular-nums font-semibold text-black dark:text-white">R{latest.toFixed(2)}</p>
+                      </div>
+                    </div>
+                    <PriceSparkline prices={prices} />
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Desktop: table */}
+          <div className="hidden sm:block border dark:border-neutral-700 rounded-lg overflow-hidden divide-y dark:divide-neutral-700">
             <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 px-4 py-2 bg-gray-50 dark:bg-neutral-800 text-xs text-gray-500 dark:text-neutral-400 font-medium">
               <span>Product</span>
               <span className="text-right">Min</span>
