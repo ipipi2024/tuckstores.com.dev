@@ -365,9 +365,12 @@ export default function POSScreen({ products, customers }: { products: Product[]
   // Cart mutations
   const addToCart = useCallback((product: Product) => {
     if (product.selling_price === null) return
+    if (product.stock !== null && product.stock <= 0) return
     setCart((prev) => {
       const existing = prev.find((i) => i.product_id === product.id)
       if (existing) {
+        // Don't exceed available stock
+        if (product.stock !== null && existing.quantity >= product.stock) return prev
         return prev.map((i) =>
           i.product_id === product.id ? { ...i, quantity: i.quantity + 1 } : i
         )
@@ -386,10 +389,18 @@ export default function POSScreen({ products, customers }: { products: Product[]
       prev.flatMap((item) => {
         if (item.product_id !== product_id) return [item]
         const newQty = item.quantity + delta
-        return newQty <= 0 ? [] : [{ ...item, quantity: newQty }]
+        if (newQty <= 0) return []
+        // Cap increases at available stock
+        if (delta > 0) {
+          const product = products.find((p) => p.id === product_id)
+          if (product?.stock !== null && product?.stock !== undefined && newQty > product.stock) {
+            return [item]
+          }
+        }
+        return [{ ...item, quantity: newQty }]
       })
     )
-  }, [])
+  }, [products])
 
   const removeItem = useCallback((product_id: string) => {
     setCart((prev) => prev.filter((i) => i.product_id !== product_id))
@@ -533,15 +544,17 @@ export default function POSScreen({ products, customers }: { products: Product[]
               {filtered.map((product) => {
                 const qty = getQty(product.id)
                 const hasPrice = product.selling_price !== null
+                const outOfStock = product.stock !== null && product.stock <= 0
+                const canAdd = hasPrice && !outOfStock
                 const inCart = qty > 0
                 return (
                   <button
                     key={product.id}
                     onClick={() => addToCart(product)}
-                    disabled={!hasPrice}
+                    disabled={!canAdd}
                     className={[
                       'relative flex flex-col items-start text-left p-3.5 rounded-xl border transition-all active:scale-95 min-h-[84px]',
-                      hasPrice
+                      canAdd
                         ? inCart
                           ? 'bg-black dark:bg-white text-white dark:text-black border-black dark:border-white shadow-sm'
                           : 'bg-white dark:bg-neutral-900 border-gray-200 dark:border-neutral-700 hover:border-gray-400 dark:hover:border-neutral-500 hover:shadow-sm'

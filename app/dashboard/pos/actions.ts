@@ -20,6 +20,24 @@ export async function completeSale(
 
   if (!items.length) return { error: 'Cart is empty' }
 
+  // Validate stock before committing
+  const { data: stockData } = await supabase
+    .from('products')
+    .select('id, name, stock')
+    .in('id', items.map((i) => i.product_id))
+    .eq('user_id', user.id)
+
+  if (stockData) {
+    for (const item of items) {
+      const product = stockData.find((p) => p.id === item.product_id)
+      if (product && product.stock !== null && product.stock < item.quantity) {
+        return {
+          error: `"${product.name}" only has ${product.stock} in stock — update inventory before selling`,
+        }
+      }
+    }
+  }
+
   const { data: saleId, error } = await supabase.rpc('create_sale', {
     p_notes: notes ?? null,
     p_items: items,
