@@ -1,4 +1,6 @@
 import Link from 'next/link'
+import { createClient } from '@/lib/supabase/server'
+import { signOut } from '@/app/auth/actions'
 import {
   ShoppingCart,
   BarChart2,
@@ -60,7 +62,10 @@ const steps = [
   },
 ]
 
-export default function Home() {
+export default async function Home() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
   return (
     <div className="min-h-screen bg-white dark:bg-neutral-950 text-gray-900 dark:text-white">
 
@@ -68,18 +73,39 @@ export default function Home() {
       <header className="border-b border-gray-100 dark:border-neutral-800 px-6 py-4 flex items-center justify-between max-w-5xl mx-auto">
         <span className="font-bold text-lg tracking-tight">TuckStores</span>
         <div className="flex items-center gap-3">
-          <Link
-            href="/login"
-            className="text-sm text-gray-500 dark:text-neutral-400 hover:text-gray-900 dark:hover:text-white transition-colors"
-          >
-            Sign in
-          </Link>
-          <Link
-            href="/signup"
-            className="text-sm bg-black dark:bg-white text-white dark:text-black px-4 py-2 rounded-lg font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
-          >
-            Get started
-          </Link>
+          {user ? (
+            <>
+              <Link
+                href="/dashboard"
+                className="text-sm bg-black dark:bg-white text-white dark:text-black px-4 py-2 rounded-lg font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
+              >
+                Go to dashboard
+              </Link>
+              <form action={signOut}>
+                <button
+                  type="submit"
+                  className="text-sm text-gray-500 dark:text-neutral-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                >
+                  Sign out
+                </button>
+              </form>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/login"
+                className="text-sm text-gray-500 dark:text-neutral-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+              >
+                Sign in
+              </Link>
+              <Link
+                href="/signup"
+                className="text-sm bg-black dark:bg-white text-white dark:text-black px-4 py-2 rounded-lg font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
+              >
+                Get started
+              </Link>
+            </>
+          )}
         </div>
       </header>
 
@@ -96,18 +122,29 @@ export default function Home() {
           TuckStores gives you a simple point of sale, live inventory tracking, and business analytics — all in one place.
         </p>
         <div className="flex gap-3 justify-center mt-8">
-          <Link
-            href="/signup"
-            className="px-6 py-3 rounded-lg bg-black dark:bg-white text-white dark:text-black font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
-          >
-            Get started free
-          </Link>
-          <Link
-            href="/login"
-            className="px-6 py-3 rounded-lg border border-gray-200 dark:border-neutral-700 font-medium hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors"
-          >
-            Sign in
-          </Link>
+          {user ? (
+            <Link
+              href="/dashboard"
+              className="px-6 py-3 rounded-lg bg-black dark:bg-white text-white dark:text-black font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
+            >
+              Go to dashboard
+            </Link>
+          ) : (
+            <>
+              <Link
+                href="/signup"
+                className="px-6 py-3 rounded-lg bg-black dark:bg-white text-white dark:text-black font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
+              >
+                Get started free
+              </Link>
+              <Link
+                href="/login"
+                className="px-6 py-3 rounded-lg border border-gray-200 dark:border-neutral-700 font-medium hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors"
+              >
+                Sign in
+              </Link>
+            </>
+          )}
         </div>
       </section>
 
@@ -161,16 +198,33 @@ export default function Home() {
       {/* CTA Banner */}
       <section className="px-6 py-16 bg-black dark:bg-white">
         <div className="max-w-xl mx-auto text-center space-y-4">
-          <h2 className="text-3xl font-bold text-white dark:text-black">Ready to get started?</h2>
-          <p className="text-gray-400 dark:text-neutral-600 text-sm">
-            Create your account and start managing your store today.
-          </p>
-          <Link
-            href="/signup"
-            className="inline-block mt-2 px-6 py-3 rounded-lg bg-white dark:bg-black text-black dark:text-white font-medium hover:bg-gray-100 dark:hover:bg-neutral-900 transition-colors"
-          >
-            Create free account
-          </Link>
+          {user ? (
+            <>
+              <h2 className="text-3xl font-bold text-white dark:text-black">Welcome back!</h2>
+              <p className="text-gray-400 dark:text-neutral-600 text-sm">
+                Head to your dashboard to manage your store.
+              </p>
+              <Link
+                href="/dashboard"
+                className="inline-block mt-2 px-6 py-3 rounded-lg bg-white dark:bg-black text-black dark:text-white font-medium hover:bg-gray-100 dark:hover:bg-neutral-900 transition-colors"
+              >
+                Go to dashboard
+              </Link>
+            </>
+          ) : (
+            <>
+              <h2 className="text-3xl font-bold text-white dark:text-black">Ready to get started?</h2>
+              <p className="text-gray-400 dark:text-neutral-600 text-sm">
+                Create your account and start managing your store today.
+              </p>
+              <Link
+                href="/signup"
+                className="inline-block mt-2 px-6 py-3 rounded-lg bg-white dark:bg-black text-black dark:text-white font-medium hover:bg-gray-100 dark:hover:bg-neutral-900 transition-colors"
+              >
+                Create free account
+              </Link>
+            </>
+          )}
         </div>
       </section>
 
