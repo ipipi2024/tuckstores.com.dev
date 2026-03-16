@@ -40,3 +40,6 @@ body {
 
 /* Collapsed desktop sidebar — overrides lg:pl-56 on main */
 body.sidebar-collapsed main { padding-left: 0; }
+
+/* Reset POS/purchase screen offset when sidebar is collapsed */
+body.sidebar-collapsed .pos-screen { left: 0; }

@@ -389,7 +389,7 @@ export default function NewPurchaseForm({
   }
 
   return (
-    <div className="fixed inset-0 z-10 flex flex-col lg:flex-row bg-white dark:bg-neutral-950 text-black dark:text-white">
+    <div className="pos-screen fixed top-14 lg:top-0 left-0 lg:left-56 right-0 bottom-0 z-10 flex flex-col lg:flex-row bg-white dark:bg-neutral-950 text-black dark:text-white">
 
       {/* ── Left panel ── */}
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
