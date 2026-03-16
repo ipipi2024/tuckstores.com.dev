@@ -8,7 +8,6 @@ type UserRow = {
   email: string | null
   full_name: string | null
   created_at: string
-  subscriptions: { expires_at: string }[] | null
 }
 
 export default async function AdminPage() {
@@ -20,10 +19,17 @@ export default async function AdminPage() {
   }
 
   const admin = createAdminClient()
-  const { data: users } = await admin
-    .from('users')
-    .select('id, email, full_name, created_at, subscriptions(expires_at)')
-    .order('created_at', { ascending: false })
+  const [{ data: users }, { data: subs }] = await Promise.all([
+    admin
+      .from('users')
+      .select('id, email, full_name, created_at')
+      .order('created_at', { ascending: false }),
+    admin
+      .from('subscriptions')
+      .select('user_id, expires_at'),
+  ])
+
+  const subMap = new Map((subs ?? []).map(s => [s.user_id, s.expires_at]))
 
   const now = new Date()
 
@@ -39,7 +45,8 @@ export default async function AdminPage() {
 
         <div className="space-y-2">
           {(users as UserRow[] | null)?.map(u => {
-            const sub = u.subscriptions?.[0]
+            const expiresAt = subMap.get(u.id)
+            const sub = expiresAt ? { expires_at: expiresAt } : null
             const isActive = sub && new Date(sub.expires_at) > now
             const daysLeft = sub
               ? Math.ceil((new Date(sub.expires_at).getTime() - now.getTime()) / 86400000)

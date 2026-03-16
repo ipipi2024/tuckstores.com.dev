@@ -9,52 +9,64 @@ export default async function LoginPage({
   const { error } = await searchParams
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="w-full max-w-sm space-y-6">
-        <h1 className="text-2xl font-semibold text-center">Sign in</h1>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-neutral-950 px-4">
+      <div className="w-full max-w-sm">
+        {/* Branding */}
+        <div className="text-center mb-8">
+          <h1 className="text-2xl font-bold tracking-tight">TuckStores</h1>
+          <p className="text-sm text-gray-500 dark:text-neutral-400 mt-1">Sign in to your account</p>
+        </div>
 
-        {error && (
-          <p className="text-sm text-red-500 text-center">{error}</p>
-        )}
+        {/* Card */}
+        <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl shadow-sm p-6 space-y-5">
+          {error && (
+            <p className="text-sm text-red-500 text-center bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-md px-3 py-2">{error}</p>
+          )}
 
-        <form action={signIn} className="space-y-4">
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium mb-1">
-              Email
-            </label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              required
-              className="w-full border rounded-md px-3 py-2 text-sm bg-transparent focus:outline-none focus:ring-2 focus:ring-black dark:border-neutral-700 dark:text-white dark:focus:ring-white dark:placeholder:text-neutral-500"
-            />
-          </div>
+          <form action={signIn} className="space-y-4">
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium mb-1.5">
+                Email
+              </label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                placeholder="you@example.com"
+                className="w-full border border-gray-300 dark:border-neutral-700 rounded-lg px-3 py-2 text-sm bg-transparent focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white dark:text-white dark:placeholder:text-neutral-500"
+              />
+            </div>
 
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium mb-1">
-              Password
-            </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              required
-              className="w-full border rounded-md px-3 py-2 text-sm bg-transparent focus:outline-none focus:ring-2 focus:ring-black dark:border-neutral-700 dark:text-white dark:focus:ring-white"
-            />
-          </div>
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label htmlFor="password" className="block text-sm font-medium">
+                  Password
+                </label>
+              </div>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                autoComplete="current-password"
+                required
+                className="w-full border border-gray-300 dark:border-neutral-700 rounded-lg px-3 py-2 text-sm bg-transparent focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white dark:text-white"
+              />
+            </div>
 
-          <button
-            type="submit"
-            className="w-full bg-black text-white rounded-md py-2 text-sm font-medium hover:bg-gray-800 transition-colors"
-          >
-            Sign in
-          </button>
-        </form>
+            <button
+              type="submit"
+              className="w-full bg-black dark:bg-white text-white dark:text-black rounded-lg py-2.5 text-sm font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors mt-1"
+            >
+              Sign in
+            </button>
+          </form>
+        </div>
 
-        <p className="text-sm text-center text-gray-500 dark:text-neutral-400">
+        <p className="text-sm text-center text-gray-500 dark:text-neutral-400 mt-5">
           Don&apos;t have an account?{' '}
-          <Link href="/signup" className="text-black dark:text-white underline">
+          <Link href="/signup" className="text-black dark:text-white font-medium hover:underline">
             Sign up
           </Link>
         </p>
