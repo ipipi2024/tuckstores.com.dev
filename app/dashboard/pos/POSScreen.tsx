@@ -2,7 +2,6 @@
 
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import ThemeToggle from '@/components/ThemeToggle'
 import { completeSale, registerWalkInCustomer, linkSaleToCustomer } from './actions'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -507,17 +506,6 @@ export default function POSScreen({ products, customers }: { products: Product[]
 
       {/* ── Left panel ── */}
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-
-        {/* Header */}
-        <div className="flex-shrink-0 flex items-center gap-3 px-4 py-3 border-b dark:border-neutral-800">
-          <Link
-            href="/dashboard"
-            className="text-sm text-gray-400 dark:text-neutral-500 hover:text-black dark:hover:text-white transition-colors"
-            aria-label="Back to dashboard"
-          >←</Link>
-          <span className="font-semibold text-lg flex-1">POS</span>
-          <ThemeToggle />
-        </div>
 
         {/* Search */}
         <div className="flex-shrink-0 px-3 py-2.5 bg-gray-50 dark:bg-neutral-900 border-b dark:border-neutral-800">
