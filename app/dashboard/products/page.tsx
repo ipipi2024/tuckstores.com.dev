@@ -60,9 +60,6 @@ export default async function ProductsPage() {
                         {product.product_categories.name}
                       </span>
                     )}
-                    {product.barcode && (
-                      <p className="text-xs text-gray-400 dark:text-neutral-500">Barcode: {product.barcode}</p>
-                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-3">

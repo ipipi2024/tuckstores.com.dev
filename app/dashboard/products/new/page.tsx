@@ -80,18 +80,6 @@ export default async function NewProductPage({
           <CategorySelect categories={categories?.map((c) => c.name) ?? []} />
         </div>
 
-        <div>
-          <label htmlFor="barcode" className="block text-sm font-medium mb-1">
-            Barcode
-          </label>
-          <input
-            id="barcode"
-            name="barcode"
-            type="text"
-            className="w-full border rounded-md px-3 py-2 text-sm bg-transparent focus:outline-none focus:ring-2 focus:ring-black dark:border-neutral-700 dark:text-white dark:focus:ring-white dark:placeholder:text-neutral-500"
-          />
-        </div>
-
         <div className="flex gap-3 pt-2">
           <button
             type="submit"

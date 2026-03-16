@@ -42,7 +42,6 @@ export async function addProduct(formData: FormData) {
   const { error } = await supabase.from('products').insert({
     name: formData.get('name') as string,
     description: formData.get('description') as string || null,
-    barcode: formData.get('barcode') as string || null,
     selling_price: selling_price !== null && !isNaN(selling_price) ? selling_price : null,
     category_id,
     user_id: user.id,
@@ -67,7 +66,6 @@ export async function updateProduct(id: string, formData: FormData) {
   const { error } = await supabase.from('products').update({
     name: formData.get('name') as string,
     description: formData.get('description') as string || null,
-    barcode: formData.get('barcode') as string || null,
     selling_price: selling_price !== null && !isNaN(selling_price) ? selling_price : null,
     category_id,
   }).eq('id', id).eq('user_id', user.id)
