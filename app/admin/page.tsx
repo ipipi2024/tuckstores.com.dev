@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { grantCredit } from './actions'
+import { GrantCreditButton } from './GrantCreditButton'
 
 type UserRow = {
   id: string
@@ -82,12 +83,7 @@ export default async function AdminPage() {
 
                 <form action={grantCredit}>
                   <input type="hidden" name="user_id" value={u.id} />
-                  <button
-                    type="submit"
-                    className="text-xs bg-black dark:bg-white text-white dark:text-black px-3 py-1.5 rounded-md hover:opacity-75 transition-opacity whitespace-nowrap"
-                  >
-                    +30 days
-                  </button>
+                  <GrantCreditButton />
                 </form>
               </div>
             )
