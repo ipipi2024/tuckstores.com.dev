@@ -43,3 +43,49 @@ export async function createPurchase(formData: FormData) {
   revalidatePath('/dashboard/products')
   redirect('/dashboard/purchases')
 }
+
+export async function submitPurchase(
+  items: { product_id: string; quantity: number; unit_cost: number }[],
+  supplierId: string | null,
+  purchaseDate: string,
+  notes: string | null,
+): Promise<{ error: string } | null> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  if (!items.length) return { error: 'Add at least one item' }
+
+  const { error } = await supabase.rpc('create_purchase', {
+    p_supplier_name: null,
+    p_supplier_id: supplierId,
+    p_purchase_date: purchaseDate,
+    p_notes: notes,
+    p_items: items,
+  })
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/dashboard/purchases')
+  revalidatePath('/dashboard/products')
+  return null
+}
+
+export async function quickAddSupplier(
+  name: string,
+): Promise<{ error: string } | { id: string; name: string }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  const { data, error } = await supabase
+    .from('suppliers')
+    .insert({ user_id: user.id, name: name.trim() })
+    .select('id, name')
+    .single()
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/dashboard/suppliers')
+  return { id: data.id, name: data.name }
+}
