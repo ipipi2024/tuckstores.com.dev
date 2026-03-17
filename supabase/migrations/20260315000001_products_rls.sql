@@ -1,6 +1,11 @@
--- Add user_id to link products to users
-alter table public.products
-  add column user_id uuid references public.users(id) on delete cascade;
+-- Create products table
+create table public.products (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid references public.users(id) on delete cascade,
+  name        text not null,
+  description text,
+  created_at  timestamptz not null default now()
+);
 
 -- Enable RLS
 alter table public.products enable row level security;
