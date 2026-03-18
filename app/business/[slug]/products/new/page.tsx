@@ -6,6 +6,7 @@ import { addProduct } from '../actions'
 import Link from 'next/link'
 import { ArrowLeft, AlertCircle } from 'lucide-react'
 import SubmitButton from '@/components/ui/SubmitButton'
+import CategoryPicker from './CategoryPicker'
 
 type Props = {
   params: Promise<{ slug: string }>
@@ -78,20 +79,9 @@ export default async function NewProductPage({ params, searchParams }: Props) {
         </div>
 
         <Field label="Category">
-          <input
-            name="category_name"
-            type="text"
-            list="categories-list"
-            placeholder="Type or select a category"
-            className={inputCls}
-          />
-          <datalist id="categories-list">
-            {(categories ?? []).map((c) => (
-              <option key={c.id} value={c.name} />
-            ))}
-          </datalist>
+          <CategoryPicker categories={categories ?? []} />
           <p className="text-xs text-gray-400 dark:text-neutral-500 mt-1">
-            Leave blank for uncategorised. A new category will be created if the name doesn&apos;t exist.
+            Leave blank for uncategorised. Choosing &ldquo;Add new category…&rdquo; will create it automatically.
           </p>
         </Field>
 
