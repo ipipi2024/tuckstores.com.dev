@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getBusinessContext, isSubscriptionActive } from '@/lib/auth/get-business-context'
 import { canPerform, ROLE_LEVEL, type MembershipRole } from '@/lib/auth/permissions'
+import { sendInviteEmail } from '@/lib/email/send-invite'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -152,6 +153,18 @@ export async function createInvitation(slug: string, formData: FormData) {
   }
 
   await writeAudit(ctx.business.id, user.id, 'staff.invite', 'business_invitation', invitation.id, { email, role })
+
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? ''
+  try {
+    await sendInviteEmail({
+      to: email,
+      businessName: ctx.business.name,
+      role,
+      inviteLink: `${baseUrl}/invite/${invitation.token}`,
+    })
+  } catch {
+    // non-critical — invitation is created, email failure shouldn't block the flow
+  }
 
   revalidatePath(staffPath(slug))
   redirect(`${staffPath(slug)}?invited=${invitation.token}`)
