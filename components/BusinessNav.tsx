@@ -24,6 +24,7 @@ import {
   PanelLeftOpen,
   Store,
   ArrowLeftRight,
+  UserCircle,
 } from 'lucide-react'
 import ThemeToggle from './ThemeToggle'
 import { signOut } from '@/app/auth/actions'
@@ -139,6 +140,13 @@ export default function BusinessNav({ slug, businessName, role }: Props) {
       >
         <ArrowLeftRight size={10} />
         Switch business
+      </Link>
+      <Link
+        href="/app"
+        className="mt-0.5 flex items-center gap-1 text-xs text-gray-400 dark:text-neutral-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+      >
+        <UserCircle size={10} />
+        Customer view
       </Link>
     </div>
   )
