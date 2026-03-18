@@ -232,7 +232,7 @@ create table public.business_invitations (
   business_id        uuid            not null references public.businesses(id) on delete cascade,
   email              text            not null,
   role               membership_role not null default 'staff',
-  invited_by_user_id uuid            not null references public.users(id) on delete cascade,
+  invited_by_user_id uuid            references public.users(id) on delete set null,
   token              text            not null unique default encode(gen_random_bytes(32), 'hex'),
   status             text            not null default 'pending'
                        check (status in ('pending', 'accepted', 'expired', 'revoked')),
@@ -692,16 +692,18 @@ $$;
 
 -- 10.1  create_purchase
 --   Atomically inserts: purchase header + purchase_items + inventory_movements.
+--   recorded_by_user_id is derived from auth.uid() inside the function —
+--   it is NOT accepted as a parameter to prevent callers attributing actions
+--   to other users.
 --   p_items jsonb schema:
 --     [{ "product_id": uuid, "product_name": text, "quantity": int, "unit_cost": numeric }]
 create or replace function public.create_purchase(
-  p_business_id         uuid,
-  p_location_id         uuid,          -- nullable
-  p_supplier_id         uuid,          -- nullable
-  p_purchase_date       date,
-  p_notes               text,          -- nullable
-  p_recorded_by_user_id uuid,
-  p_items               jsonb
+  p_business_id   uuid,
+  p_location_id   uuid,    -- nullable
+  p_supplier_id   uuid,    -- nullable
+  p_purchase_date date,
+  p_notes         text,    -- nullable
+  p_items         jsonb
 )
 returns uuid
 language plpgsql
@@ -709,6 +711,7 @@ security definer
 set search_path = public
 as $$
 declare
+  v_caller_id     uuid := auth.uid();
   v_purchase_id   uuid;
   v_subtotal      numeric(10,2) := 0;
   v_item          jsonb;
@@ -716,8 +719,12 @@ declare
   v_product_name  text;
   v_quantity      integer;
   v_unit_cost     numeric(10,2);
-  v_item_subtotal numeric(10,2);
 begin
+  -- Caller must be authenticated
+  if v_caller_id is null then
+    raise exception 'Not authenticated';
+  end if;
+
   -- Authorization checks
   if not public.has_business_role(
     p_business_id,
@@ -735,27 +742,20 @@ begin
     raise exception 'Purchase must contain at least one item';
   end if;
 
-  -- Insert purchase header (totals filled in after items)
-  insert into public.purchases (
-    business_id, location_id, supplier_id, status,
-    purchase_date, subtotal_amount, tax_amount, total_amount,
-    notes, recorded_by_user_id
-  ) values (
-    p_business_id, p_location_id, p_supplier_id, 'received',
-    p_purchase_date, 0, 0, 0,
-    p_notes, p_recorded_by_user_id
-  )
-  returning id into v_purchase_id;
-
-  -- Process each line item
+  -- Pre-validation: validate all items before any writes
   for v_item in select * from jsonb_array_elements(p_items) loop
-    v_product_id   := (v_item->>'product_id')::uuid;
-    v_product_name := v_item->>'product_name';
-    v_quantity     := (v_item->>'quantity')::integer;
-    v_unit_cost    := (v_item->>'unit_cost')::numeric(10,2);
-    v_item_subtotal := v_quantity * v_unit_cost;
+    v_product_id := (v_item->>'product_id')::uuid;
+    v_quantity   := (v_item->>'quantity')::integer;
+    v_unit_cost  := (v_item->>'unit_cost')::numeric(10,2);
 
-    -- Validate product belongs to this business
+    if v_quantity <= 0 then
+      raise exception 'Quantity must be positive for product %', v_product_id;
+    end if;
+
+    if v_unit_cost < 0 then
+      raise exception 'Unit cost cannot be negative for product %', v_product_id;
+    end if;
+
     if not exists (
       select 1 from public.products p
       where  p.id          = v_product_id
@@ -764,20 +764,36 @@ begin
       raise exception 'Product % does not belong to business %',
         v_product_id, p_business_id;
     end if;
+  end loop;
 
-    -- Validate quantity
-    if v_quantity <= 0 then
-      raise exception 'Quantity must be positive for product %', v_product_id;
-    end if;
+  -- All validations passed — begin writes
 
-    -- Insert purchase item
+  -- Insert purchase header (totals filled in after items)
+  insert into public.purchases (
+    business_id, location_id, supplier_id, status,
+    purchase_date, subtotal_amount, tax_amount, total_amount,
+    notes, recorded_by_user_id
+  ) values (
+    p_business_id, p_location_id, p_supplier_id, 'received',
+    p_purchase_date, 0, 0, 0,
+    p_notes, v_caller_id
+  )
+  returning id into v_purchase_id;
+
+  -- Insert items and inventory movements
+  for v_item in select * from jsonb_array_elements(p_items) loop
+    v_product_id   := (v_item->>'product_id')::uuid;
+    v_product_name := v_item->>'product_name';
+    v_quantity     := (v_item->>'quantity')::integer;
+    v_unit_cost    := (v_item->>'unit_cost')::numeric(10,2);
+
     insert into public.purchase_items (
       purchase_id, product_id, product_name_snapshot, quantity, unit_cost
     ) values (
       v_purchase_id, v_product_id, v_product_name, v_quantity, v_unit_cost
     );
 
-    -- Insert inventory movement (positive = stock in)
+    -- Inventory movement (positive = stock in)
     insert into public.inventory_movements (
       business_id, location_id, product_id, quantity,
       movement_type, reference_type, reference_id,
@@ -785,10 +801,10 @@ begin
     ) values (
       p_business_id, p_location_id, v_product_id, v_quantity,
       'purchase', 'purchase', v_purchase_id,
-      p_recorded_by_user_id
+      v_caller_id
     );
 
-    v_subtotal := v_subtotal + v_item_subtotal;
+    v_subtotal := v_subtotal + (v_quantity * v_unit_cost);
   end loop;
 
   -- Update purchase totals (no tax in MVP)
@@ -805,7 +821,10 @@ $$;
 -- 10.2  create_sale
 --   Atomically inserts: sale header + sale_items + sale_payments
 --   + inventory_movements (negative qty).
---   Validates stock levels before committing.
+--   Validates all products and stock BEFORE any writes.
+--   recorded_by_user_id is derived from auth.uid() inside the function —
+--   it is NOT accepted as a parameter to prevent callers attributing actions
+--   to other users.
 --
 --   p_items jsonb schema:
 --     [{ "product_id": uuid, "product_name": text, "quantity": int,
@@ -814,13 +833,12 @@ $$;
 --     [{ "payment_method": text, "amount": numeric, "reference": text|null }]
 create or replace function public.create_sale(
   p_business_id             uuid,
-  p_location_id             uuid,          -- nullable
-  p_customer_user_id        uuid,          -- nullable (platform user)
-  p_customer_name_snapshot  text,          -- nullable (guest / history snapshot)
-  p_customer_phone_snapshot text,          -- nullable
+  p_location_id             uuid,    -- nullable
+  p_customer_user_id        uuid,    -- nullable (platform user)
+  p_customer_name_snapshot  text,    -- nullable (guest / history snapshot)
+  p_customer_phone_snapshot text,    -- nullable
   p_sale_channel            sale_channel,
-  p_notes                   text,          -- nullable
-  p_recorded_by_user_id     uuid,
+  p_notes                   text,    -- nullable
   p_items                   jsonb,
   p_payments                jsonb
 )
@@ -830,6 +848,7 @@ security definer
 set search_path = public
 as $$
 declare
+  v_caller_id     uuid := auth.uid();
   v_sale_id       uuid;
   v_subtotal      numeric(10,2) := 0;
   v_discount      numeric(10,2) := 0;
@@ -842,6 +861,11 @@ declare
   v_item_discount numeric(10,2);
   v_available_qty integer;
 begin
+  -- Caller must be authenticated
+  if v_caller_id is null then
+    raise exception 'Not authenticated';
+  end if;
+
   -- Authorization checks
   if not public.has_business_role(
     p_business_id,
@@ -868,6 +892,10 @@ begin
     v_product_id := (v_item->>'product_id')::uuid;
     v_quantity   := (v_item->>'quantity')::integer;
 
+    if v_quantity <= 0 then
+      raise exception 'Quantity must be positive for product %', v_product_id;
+    end if;
+
     -- Product must belong to this business and be active
     if not exists (
       select 1 from public.products p
@@ -879,14 +907,10 @@ begin
         v_product_id, p_business_id;
     end if;
 
-    if v_quantity <= 0 then
-      raise exception 'Quantity must be positive for product %', v_product_id;
-    end if;
-
-    -- Stock check: sum movements for this business+product.
-    -- When a location is specified we check location-scoped stock first;
-    -- if no location-scoped movements exist we fall back to null-location stock.
-    -- This covers the common single-location setup where movements have no location.
+    -- Stock check: sum movements for this business + product.
+    -- When a location is specified, include both location-specific and
+    -- null-location movements (covers single-location setups where movements
+    -- have no explicit location). When no location specified, sum all.
     select coalesce(sum(im.quantity), 0)::integer
     into   v_available_qty
     from   public.inventory_movements im
@@ -905,6 +929,8 @@ begin
     end if;
   end loop;
 
+  -- All validations passed — begin writes
+
   -- Insert sale header (totals filled in after items)
   insert into public.sales (
     business_id, location_id,
@@ -917,7 +943,7 @@ begin
     p_customer_user_id, p_customer_name_snapshot, p_customer_phone_snapshot,
     p_sale_channel, 'completed',
     0, 0, 0, 0,
-    p_notes, p_recorded_by_user_id
+    p_notes, v_caller_id
   )
   returning id into v_sale_id;
 
@@ -945,7 +971,7 @@ begin
     ) values (
       p_business_id, p_location_id, v_product_id, -v_quantity,
       'sale', 'sale', v_sale_id,
-      p_recorded_by_user_id
+      v_caller_id
     );
 
     v_subtotal := v_subtotal + (v_quantity * v_unit_price);
@@ -1387,9 +1413,9 @@ grant execute on function public.business_subscription_active(uuid)
 
 -- Atomic RPCs callable by authenticated users
 -- (internal permission checks enforce membership + role + subscription)
-grant execute on function public.create_purchase(uuid, uuid, uuid, date, text, uuid, jsonb)
+grant execute on function public.create_purchase(uuid, uuid, uuid, date, text, jsonb)
   to authenticated;
-grant execute on function public.create_sale(uuid, uuid, uuid, text, text, sale_channel, text, uuid, jsonb, jsonb)
+grant execute on function public.create_sale(uuid, uuid, uuid, text, text, sale_channel, text, jsonb, jsonb)
   to authenticated;
 
 -- Table grants (RLS enforces actual row visibility; grants enable schema access)
