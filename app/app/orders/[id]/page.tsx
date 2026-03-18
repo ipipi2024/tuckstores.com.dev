@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import {
   ArrowLeft, ShoppingBag, CheckCircle2, AlertCircle,
-  Package, Truck, Clock, Store
+  Package, Truck, Receipt, Store
 } from 'lucide-react'
 import CancelOrderButton from './CancelOrderButton'
 import CartClearer from './CartClearer'
@@ -76,6 +76,18 @@ export default async function OrderDetailPage({ params, searchParams }: Props) {
   if (!order) notFound()
 
   const biz = Array.isArray(order.businesses) ? order.businesses[0] : order.businesses
+
+  // Look up the sale generated when this order was completed (matched by notes field)
+  let receiptId: string | null = null
+  if (order.status === 'completed') {
+    const { data: sale } = await admin
+      .from('sales')
+      .select('id')
+      .eq('customer_user_id', user.id)
+      .eq('notes', `Order ${order.order_number}`)
+      .maybeSingle()
+    receiptId = sale?.id ?? null
+  }
   const items = order.order_items ?? []
   const currency = biz?.currency_code ?? 'USD'
 
@@ -217,6 +229,17 @@ export default async function OrderDetailPage({ params, searchParams }: Props) {
       {/* Cancel (only while pending) */}
       {order.status === 'pending' && (
         <CancelOrderButton orderId={order.id} />
+      )}
+
+      {/* Receipt link (only when completed and sale was created) */}
+      {receiptId && (
+        <Link
+          href={`/app/receipts/${receiptId}`}
+          className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-neutral-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors"
+        >
+          <Receipt size={15} />
+          View receipt
+        </Link>
       )}
     </div>
   )
