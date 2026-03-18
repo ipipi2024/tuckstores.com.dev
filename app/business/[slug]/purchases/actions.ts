@@ -54,6 +54,10 @@ export async function createPurchase(slug: string, formData: FormData) {
     redirect(`/business/${slug}/purchases/new?error=${encodeURIComponent(error.message)}`)
   }
 
+  if (!purchaseId) {
+    redirect(`/business/${slug}/purchases/new?error=Failed+to+create+purchase`)
+  }
+
   revalidatePath(purchasesPath(slug))
   revalidatePath(`/business/${slug}/inventory`)
   redirect(`${purchasesPath(slug)}/${purchaseId}`)
