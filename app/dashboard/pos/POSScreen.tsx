@@ -364,7 +364,7 @@ export default function POSScreen({ products, customers }: { products: Product[]
   // Cart mutations
   const addToCart = useCallback((product: Product) => {
     if (product.selling_price === null) return
-    if (product.stock !== null && product.stock <= 0) return
+    if (product.stock === null || product.stock <= 0) return
     setCart((prev) => {
       const existing = prev.find((i) => i.product_id === product.id)
       if (existing) {
@@ -532,7 +532,7 @@ export default function POSScreen({ products, customers }: { products: Product[]
               {filtered.map((product) => {
                 const qty = getQty(product.id)
                 const hasPrice = product.selling_price !== null
-                const outOfStock = product.stock !== null && product.stock <= 0
+                const outOfStock = product.stock === null || product.stock <= 0
                 const canAdd = hasPrice && !outOfStock
                 const inCart = qty > 0
                 return (
@@ -565,11 +565,9 @@ export default function POSScreen({ products, customers }: { products: Product[]
                     <span className={['text-sm font-bold mt-2', inCart ? 'text-white/70 dark:text-black/50' : 'text-black dark:text-white'].join(' ')}>
                       {hasPrice ? `$${product.selling_price!.toFixed(2)}` : 'No price'}
                     </span>
-                    {product.stock !== null && (
-                      <span className={['text-xs mt-0.5', inCart ? 'text-white/50 dark:text-black/40' : product.stock <= 0 ? 'text-red-400' : 'text-gray-400 dark:text-neutral-500'].join(' ')}>
-                        {product.stock <= 0 ? 'Out of stock' : `${product.stock} left`}
-                      </span>
-                    )}
+                    <span className={['text-xs mt-0.5', inCart ? 'text-white/50 dark:text-black/40' : outOfStock ? 'text-red-400' : 'text-gray-400 dark:text-neutral-500'].join(' ')}>
+                      {product.stock === null ? 'No inventory' : product.stock <= 0 ? 'Out of stock' : `${product.stock} left`}
+                    </span>
                   </button>
                 )
               })}

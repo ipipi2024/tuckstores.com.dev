@@ -32,9 +32,16 @@ export async function completeSale(
   if (stockData) {
     for (const item of items) {
       const product = stockData.find((p) => p.id === item.product_id)
-      if (product && product.stock !== null && product.stock < item.quantity) {
-        return {
-          error: `"${product.name}" only has ${product.stock} in stock — update inventory before selling`,
+      if (product) {
+        if (product.stock === null || product.stock === 0) {
+          return {
+            error: `"${product.name}" has no inventory — record a purchase before selling`,
+          }
+        }
+        if (product.stock < item.quantity) {
+          return {
+            error: `"${product.name}" only has ${product.stock} in stock — update inventory before selling`,
+          }
         }
       }
     }
