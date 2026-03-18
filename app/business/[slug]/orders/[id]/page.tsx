@@ -1,6 +1,7 @@
 import { getBusinessContext } from '@/lib/auth/get-business-context'
 import { canPerform } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, CheckCircle2, AlertCircle, Package, Truck, User } from 'lucide-react'
@@ -67,23 +68,37 @@ export default async function BusinessOrderDetailPage({ params, searchParams }: 
   const canManage = canPerform(ctx.membership.role, 'manage_orders')
 
   const supabase = await createClient()
-  const { data: order } = await supabase
-    .from('orders')
-    .select(`
-      id, order_number, placed_at, status, fulfillment_method,
-      subtotal_amount, delivery_fee, total_amount,
-      customer_note, delivery_address, business_note,
-      users ( full_name, email, phone ),
-      order_items ( id, product_name_snapshot, unit_price_snapshot, quantity, line_total )
-    `)
-    .eq('id', id)
-    .eq('business_id', ctx.business.id)
-    .single()
+  const admin    = createAdminClient()
+
+  const [{ data: order }, ] = await Promise.all([
+    supabase
+      .from('orders')
+      .select(`
+        id, order_number, placed_at, status, fulfillment_method,
+        subtotal_amount, delivery_fee, total_amount,
+        customer_note, delivery_address, business_note, customer_user_id,
+        order_items ( id, product_name_snapshot, unit_price_snapshot, quantity, line_total )
+      `)
+      .eq('id', id)
+      .eq('business_id', ctx.business.id)
+      .single(),
+  ])
 
   if (!order) notFound()
 
-  const customer = Array.isArray(order.users) ? order.users[0] : order.users
-  const items    = order.order_items ?? []
+  // Fetch customer from business_customers (least-privilege read model)
+  let customer: { display_name_snapshot: string | null; email_snapshot: string | null; phone_snapshot: string | null } | null = null
+  if (order.customer_user_id) {
+    const { data: bc } = await admin
+      .from('business_customers')
+      .select('display_name_snapshot, email_snapshot, phone_snapshot')
+      .eq('business_id', ctx.business.id)
+      .eq('user_id', order.customer_user_id)
+      .maybeSingle()
+    customer = bc ?? null
+  }
+
+  const items = order.order_items ?? []
   const currency = ctx.business.currency_code
   const nextStatuses = canManage ? (TRANSITIONS[order.status] ?? []) : []
 
@@ -140,13 +155,13 @@ export default async function BusinessOrderDetailPage({ params, searchParams }: 
           <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Customer</span>
         </div>
         <p className="text-sm font-medium text-gray-900 dark:text-white">
-          {customer?.full_name ?? 'Unknown'}
+          {customer?.display_name_snapshot ?? customer?.email_snapshot ?? 'Customer'}
         </p>
-        {customer?.email && (
-          <p className="text-xs text-gray-400 dark:text-neutral-500">{customer.email}</p>
+        {customer?.email_snapshot && (
+          <p className="text-xs text-gray-400 dark:text-neutral-500">{customer.email_snapshot}</p>
         )}
-        {customer?.phone && (
-          <p className="text-xs text-gray-400 dark:text-neutral-500">{customer.phone}</p>
+        {customer?.phone_snapshot && (
+          <p className="text-xs text-gray-400 dark:text-neutral-500">{customer.phone_snapshot}</p>
         )}
       </div>
 

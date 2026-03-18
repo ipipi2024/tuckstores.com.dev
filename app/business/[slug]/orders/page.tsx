@@ -5,6 +5,12 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { ShoppingBag, ChevronRight } from 'lucide-react'
 
+type BusinessCustomer = {
+  user_id: string
+  display_name_snapshot: string | null
+  email_snapshot: string | null
+}
+
 type Props = {
   params: Promise<{ slug: string }>
 }
@@ -52,19 +58,32 @@ export default async function BusinessOrdersPage({ params }: Props) {
     .from('orders')
     .select(`
       id, order_number, placed_at, status, fulfillment_method,
-      total_amount,
-      users ( full_name, email )
+      total_amount, customer_user_id
     `)
     .eq('business_id', ctx.business.id)
     .order('placed_at', { ascending: false })
     .limit(200)
 
   const allOrders = orders ?? []
-  const active    = allOrders.filter((o) => ACTIVE_STATUSES.includes(o.status))
-  const past      = allOrders.filter((o) => !ACTIVE_STATUSES.includes(o.status))
+
+  // Batch-fetch business_customers for all orders with a customer
+  const customerIds = [...new Set(allOrders.map((o) => o.customer_user_id).filter(Boolean))]
+  let customerMap = new Map<string, BusinessCustomer>()
+  if (customerIds.length > 0) {
+    const { data: bizCustomers } = await supabase
+      .from('business_customers')
+      .select('user_id, display_name_snapshot, email_snapshot')
+      .eq('business_id', ctx.business.id)
+      .in('user_id', customerIds)
+    for (const bc of bizCustomers ?? []) customerMap.set(bc.user_id, bc)
+  }
+
+  const active = allOrders.filter((o) => ACTIVE_STATUSES.includes(o.status))
+  const past   = allOrders.filter((o) => !ACTIVE_STATUSES.includes(o.status))
 
   function OrderRow({ order }: { order: (typeof allOrders)[0] }) {
-    const customer = Array.isArray(order.users) ? order.users[0] : order.users
+    const bc = order.customer_user_id ? customerMap.get(order.customer_user_id) : undefined
+    const customerLabel = bc?.display_name_snapshot ?? bc?.email_snapshot ?? 'Customer'
     return (
       <Link
         href={`/business/${slug}/orders/${order.id}`}
@@ -78,7 +97,7 @@ export default async function BusinessOrdersPage({ params }: Props) {
             </span>
           </p>
           <p className="text-xs text-gray-400 dark:text-neutral-500 mt-0.5 truncate">
-            {customer?.full_name ?? customer?.email ?? 'Customer'} · {fmtDate(order.placed_at)}
+            {customerLabel} · {fmtDate(order.placed_at)}
           </p>
         </div>
         <div className="flex flex-col items-end gap-1 shrink-0">

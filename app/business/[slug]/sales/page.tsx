@@ -5,6 +5,12 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Receipt, AlertCircle } from 'lucide-react'
 
+type BusinessCustomer = {
+  user_id: string
+  display_name_snapshot: string | null
+  email_snapshot: string | null
+}
+
 type Props = {
   params: Promise<{ slug: string }>
   searchParams: Promise<{ error?: string }>
@@ -65,6 +71,24 @@ export default async function SalesPage({ params, searchParams }: Props) {
     .order('created_at', { ascending: false })
     .limit(200)
 
+  // Batch-fetch business_customers for online sales without a name snapshot
+  const customerIds = [
+    ...new Set(
+      (sales ?? [])
+        .filter((s) => s.customer_user_id && !s.customer_name_snapshot)
+        .map((s) => s.customer_user_id as string)
+    ),
+  ]
+  let customerMap = new Map<string, BusinessCustomer>()
+  if (customerIds.length > 0) {
+    const { data: bizCustomers } = await supabase
+      .from('business_customers')
+      .select('user_id, display_name_snapshot, email_snapshot')
+      .eq('business_id', ctx.business.id)
+      .in('user_id', customerIds)
+    for (const bc of bizCustomers ?? []) customerMap.set(bc.user_id, bc)
+  }
+
   return (
     <div className="space-y-5">
       {/* Header */}
@@ -113,8 +137,11 @@ export default async function SalesPage({ params, searchParams }: Props) {
               <tbody className="divide-y divide-gray-50 dark:divide-neutral-800">
                 {sales.map((s) => {
                   const recorder = Array.isArray(s.recorded_by) ? s.recorded_by[0] : s.recorded_by
+                  const bc = s.customer_user_id ? customerMap.get(s.customer_user_id) : undefined
                   const customerLabel = s.customer_name_snapshot
-                    ?? (s.customer_user_id ? 'Linked customer' : null)
+                    ?? bc?.display_name_snapshot
+                    ?? bc?.email_snapshot
+                    ?? null
 
                   return (
                     <tr key={s.id} className="hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition-colors">

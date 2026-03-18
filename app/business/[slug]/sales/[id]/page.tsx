@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, User } from 'lucide-react'
 
+
 type Props = {
   params: Promise<{ slug: string; id: string }>
 }
@@ -75,10 +76,23 @@ export default async function SaleDetailPage({ params }: Props) {
   }
 
   const recorder = Array.isArray(sale.recorded_by) ? sale.recorded_by[0] : sale.recorded_by
-  const items = sale.sale_items ?? []
+  const items    = sale.sale_items ?? []
   const payments = sale.sale_payments ?? []
 
-  const customerPhone = sale.customer_phone_snapshot
+  // For online orders, customer_name_snapshot is null — look up from business_customers
+  let bcCustomer: { display_name_snapshot: string | null; email_snapshot: string | null; phone_snapshot: string | null } | null = null
+  if (sale.customer_user_id && !sale.customer_name_snapshot) {
+    const { data: bc } = await supabase
+      .from('business_customers')
+      .select('display_name_snapshot, email_snapshot, phone_snapshot')
+      .eq('business_id', ctx.business.id)
+      .eq('user_id', sale.customer_user_id)
+      .maybeSingle()
+    bcCustomer = bc ?? null
+  }
+
+  const customerName  = sale.customer_name_snapshot  ?? bcCustomer?.display_name_snapshot ?? bcCustomer?.email_snapshot ?? null
+  const customerPhone = sale.customer_phone_snapshot ?? bcCustomer?.phone_snapshot ?? null
 
   return (
     <div className="max-w-2xl space-y-6">
@@ -115,13 +129,13 @@ export default async function SaleDetailPage({ params }: Props) {
           <User size={15} className="text-gray-400" />
           <h2 className="text-sm font-medium text-gray-700 dark:text-gray-300">Customer</h2>
         </div>
-        {sale.customer_name_snapshot || sale.customer_phone_snapshot || sale.customer_user_id ? (
+        {customerName || customerPhone || sale.customer_user_id ? (
           <div className="space-y-1">
             <p className="text-sm text-gray-900 dark:text-white font-medium">
-              {sale.customer_name_snapshot ?? 'Linked platform user'}
+              {customerName ?? 'Platform customer'}
             </p>
-            {sale.customer_phone_snapshot && (
-              <p className="text-sm text-gray-500 dark:text-gray-400">{sale.customer_phone_snapshot}</p>
+            {customerPhone && (
+              <p className="text-sm text-gray-500 dark:text-gray-400">{customerPhone}</p>
             )}
           </div>
         ) : (

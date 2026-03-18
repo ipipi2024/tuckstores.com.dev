@@ -157,6 +157,17 @@ export async function updateOrderStatus(
         reference:      order.order_number,
       })
     }
+
+    // Update business_customers counts for this customer
+    if (order.customer_user_id) {
+      await admin.rpc('upsert_business_customer', {
+        p_business_id:                  ctx.business.id,
+        p_user_id:                      order.customer_user_id,
+        p_order_increment:              0,
+        p_completed_order_increment:    1,
+        p_completed_sale_increment:     1,
+      })
+    }
   }
 
   redirect(`/business/${slug}/orders/${orderId}?success=1`)
