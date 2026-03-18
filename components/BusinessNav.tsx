@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react'
 import {
   LayoutDashboard,
   ShoppingCart,
+  ShoppingBag,
   BarChart2,
   TrendingUp,
   PackagePlus,
@@ -41,6 +42,7 @@ type NavItem = {
 const ALL_NAV: NavItem[] = [
   { label: 'Dashboard',  path: '/dashboard',  icon: LayoutDashboard, exact: true, minRole: 'staff' },
   { label: 'POS',        path: '/pos',         icon: ShoppingCart,               minRole: 'cashier' },
+  { label: 'Orders',     path: '/orders',      icon: ShoppingBag,                minRole: 'cashier' },
   { label: 'Analytics',  path: '/analytics',   icon: BarChart2,                  minRole: 'manager' },
   { label: 'Sales',      path: '/sales',       icon: TrendingUp,                 minRole: 'cashier' },
   { label: 'Purchases',  path: '/purchases',   icon: PackagePlus,                minRole: 'inventory_clerk' },

@@ -2,6 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Store, Tag } from 'lucide-react'
+import AddToCartButton from '@/components/AddToCartButton'
+import CartFab from '@/components/CartFab'
 
 type Props = { params: Promise<{ id: string }> }
 
@@ -83,6 +85,17 @@ export default async function ProductDetailPage({ params }: Props) {
           {product.sku && (
             <p className="text-xs text-gray-400 dark:text-neutral-500">SKU: {product.sku}</p>
           )}
+
+          {biz && (
+            <AddToCartButton
+              businessId={biz.id}
+              businessSlug={biz.slug}
+              businessName={biz.name}
+              productId={product.id}
+              productName={product.name}
+              unitPrice={product.selling_price}
+            />
+          )}
         </div>
 
         {/* Business card */}
@@ -119,6 +132,7 @@ export default async function ProductDetailPage({ params }: Props) {
           </div>
         )}
       </div>
+      <CartFab />
     </div>
   )
 }

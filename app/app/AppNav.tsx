@@ -2,13 +2,13 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, Receipt, MessageSquare, Megaphone, Store, User } from 'lucide-react'
+import { Home, ShoppingBag, MessageSquare, Store, User } from 'lucide-react'
 
 const NAV = [
   { href: '/app',               label: 'Home',     icon: Home,          exact: true },
   { href: '/businesses',        label: 'Stores',   icon: Store,         exact: false },
   { href: '/app/messages',      label: 'Messages', icon: MessageSquare, exact: false },
-  { href: '/app/receipts',      label: 'Receipts', icon: Receipt,       exact: false },
+  { href: '/app/orders',        label: 'Orders',   icon: ShoppingBag,   exact: false },
   { href: '/app/profile',       label: 'Profile',  icon: User,          exact: false },
 ]
 

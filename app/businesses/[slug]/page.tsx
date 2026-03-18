@@ -2,6 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, MapPin, Phone, Mail, Tag } from 'lucide-react'
+import AddToCartButton from '@/components/AddToCartButton'
+import CartFab from '@/components/CartFab'
 
 type Props = { params: Promise<{ slug: string }> }
 
@@ -164,21 +166,26 @@ export default async function PublicBusinessPage({ params }: Props) {
                 )}
                 <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl divide-y divide-gray-100 dark:divide-neutral-800 overflow-hidden">
                   {catProds.map((p) => (
-                    <Link
-                      key={p.id}
-                      href={`/products/${p.id}`}
-                      className="flex items-center justify-between px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors gap-3"
-                    >
-                      <div className="flex-1 min-w-0">
+                    <div key={p.id} className="flex items-center gap-3 px-4 py-3.5">
+                      <Link href={`/products/${p.id}`} className="flex-1 min-w-0 hover:opacity-80 transition-opacity">
                         <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{p.name}</p>
                         {p.description && (
                           <p className="text-xs text-gray-400 dark:text-neutral-500 truncate mt-0.5">{p.description}</p>
                         )}
-                      </div>
+                      </Link>
                       <span className="shrink-0 text-sm font-semibold text-gray-900 dark:text-white tabular-nums">
                         {fmtCurrency(p.selling_price, currency)}
                       </span>
-                    </Link>
+                      <AddToCartButton
+                        businessId={biz.id}
+                        businessSlug={biz.slug}
+                        businessName={biz.name}
+                        productId={p.id}
+                        productName={p.name}
+                        unitPrice={p.selling_price}
+                        className="shrink-0 !py-1.5 !px-3 text-xs"
+                      />
+                    </div>
                   ))}
                 </div>
               </div>
@@ -192,6 +199,7 @@ export default async function PublicBusinessPage({ params }: Props) {
           </p>
         )}
       </div>
+      <CartFab />
     </div>
   )
 }

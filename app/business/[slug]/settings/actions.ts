@@ -66,3 +66,52 @@ export async function updateBusinessSettings(slug: string, formData: FormData) {
   revalidatePath(`/business/${slug}/settings`)
   redirect(`/business/${slug}/settings?success=1`)
 }
+
+export async function updateDeliverySettings(slug: string, formData: FormData) {
+  const ctx = await getBusinessContext(slug)
+
+  if (!isAtLeastRole(ctx.membership.role, 'admin')) {
+    redirect(`/business/${slug}/settings?error=` + encodeURIComponent('Only admins can change delivery settings'))
+  }
+
+  const pickupEnabled   = formData.get('pickup_enabled')   === 'true'
+  const deliveryEnabled = formData.get('delivery_enabled') === 'true'
+
+  if (!pickupEnabled && !deliveryEnabled) {
+    redirect(
+      `/business/${slug}/settings?error=` +
+      encodeURIComponent('At least one fulfillment method must be enabled')
+    )
+  }
+
+  const deliveryFeeRaw      = formData.get('delivery_fee')        as string
+  const freeAboveRaw        = formData.get('free_delivery_above') as string
+  const estimatedPickup     = (formData.get('estimated_time_pickup')   as string)?.trim() || null
+  const estimatedDelivery   = (formData.get('estimated_time_delivery') as string)?.trim() || null
+
+  const deliveryFee    = parseFloat(deliveryFeeRaw ?? '0') || 0
+  const freeAbove      = freeAboveRaw?.trim() ? parseFloat(freeAboveRaw) : null
+
+  const admin = createAdminClient()
+  const { error } = await admin
+    .from('business_delivery_settings')
+    .upsert(
+      {
+        business_id:             ctx.business.id,
+        pickup_enabled:          pickupEnabled,
+        delivery_enabled:        deliveryEnabled,
+        delivery_fee:            deliveryFee,
+        free_delivery_above:     freeAbove,
+        estimated_time_pickup:   estimatedPickup,
+        estimated_time_delivery: estimatedDelivery,
+      },
+      { onConflict: 'business_id' }
+    )
+
+  if (error) {
+    redirect(`/business/${slug}/settings?error=` + encodeURIComponent(error.message))
+  }
+
+  revalidatePath(`/business/${slug}/settings`)
+  redirect(`/business/${slug}/settings?success=1`)
+}

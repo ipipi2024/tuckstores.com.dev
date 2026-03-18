@@ -42,6 +42,11 @@ export type BusinessAction =
   // Inventory adjustments (manual, not via purchase/sale)
   | 'adjust_inventory'
   | 'view_inventory'
+  // Orders
+  | 'view_orders'
+  | 'manage_orders'
+  // Delivery settings
+  | 'manage_delivery_settings'
   // Analytics
   | 'view_analytics'
   // Announcements / messaging
@@ -64,6 +69,9 @@ const ALL_ACTIONS: BusinessAction[] = [
   'view_sales',
   'adjust_inventory',
   'view_inventory',
+  'view_orders',
+  'manage_orders',
+  'manage_delivery_settings',
   'view_analytics',
   'manage_announcements',
 ]
@@ -88,6 +96,8 @@ export const ROLE_PERMISSIONS: Record<MembershipRole, BusinessAction[]> = {
     'view_sales',
     'adjust_inventory',
     'view_inventory',
+    'view_orders',
+    'manage_orders',
     'view_analytics',
     'manage_announcements',
   ],
@@ -97,6 +107,8 @@ export const ROLE_PERMISSIONS: Record<MembershipRole, BusinessAction[]> = {
     'create_sale',
     'view_sales',
     'view_inventory',
+    'view_orders',
+    'manage_orders',
   ],
 
   inventory_clerk: [

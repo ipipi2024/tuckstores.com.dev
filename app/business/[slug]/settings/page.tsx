@@ -3,8 +3,9 @@ import { canPerform } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { Settings2, AlertCircle, CheckCircle2 } from 'lucide-react'
-import { updateBusinessSettings } from './actions'
+import { updateBusinessSettings, updateDeliverySettings } from './actions'
 import SubmitButton from '@/components/ui/SubmitButton'
+import { isAtLeastRole } from '@/lib/auth/permissions'
 
 type Props = {
   params:       Promise<{ slug: string }>
@@ -72,7 +73,18 @@ export default async function SettingsPage({ params, searchParams }: Props) {
 
   if (!biz) redirect(`/business/${slug}/dashboard`)
 
-  const action = updateBusinessSettings.bind(null, slug)
+  // Fetch delivery settings if admin+
+  const isAdmin = isAtLeastRole(ctx.membership.role, 'admin')
+  const { data: deliverySettings } = isAdmin
+    ? await supabase
+        .from('business_delivery_settings')
+        .select('pickup_enabled, delivery_enabled, delivery_fee, free_delivery_above, estimated_time_pickup, estimated_time_delivery')
+        .eq('business_id', ctx.business.id)
+        .maybeSingle()
+    : { data: null }
+
+  const action         = updateBusinessSettings.bind(null, slug)
+  const deliveryAction = updateDeliverySettings.bind(null, slug)
 
   const labelCls = 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5'
   const inputCls =
@@ -238,6 +250,119 @@ export default async function SettingsPage({ params, searchParams }: Props) {
           </SubmitButton>
         </div>
       </form>
+
+      {/* Delivery & Fulfillment — admin+ only */}
+      {isAdmin && (
+        <div className="space-y-4">
+          <div>
+            <h2 className="text-base font-semibold text-gray-900 dark:text-white">Delivery &amp; Fulfillment</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+              Configure how customers can receive their orders.
+            </p>
+          </div>
+
+          <form action={deliveryAction} className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl p-5 space-y-5">
+            {/* Pickup toggle */}
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Pickup</p>
+                <p className="text-xs text-gray-400 dark:text-neutral-500">Customers collect from your location</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="pickup_enabled"
+                  value="true"
+                  defaultChecked={deliverySettings?.pickup_enabled !== false}
+                  className="sr-only peer"
+                />
+                <div className="w-10 h-6 bg-gray-200 dark:bg-neutral-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+              </label>
+            </div>
+
+            {/* Delivery toggle */}
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Delivery</p>
+                <p className="text-xs text-gray-400 dark:text-neutral-500">You deliver to the customer</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="delivery_enabled"
+                  value="true"
+                  defaultChecked={deliverySettings?.delivery_enabled === true}
+                  className="sr-only peer"
+                />
+                <div className="w-10 h-6 bg-gray-200 dark:bg-neutral-700 peer-focus:outline-none rounded-full peer peer-focus:ring-2 peer-focus:ring-indigo-500 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+              </label>
+            </div>
+
+            {/* Delivery fee */}
+            <div>
+              <label className={labelCls}>Delivery fee</label>
+              <input
+                name="delivery_fee"
+                type="number"
+                min="0"
+                step="0.01"
+                defaultValue={deliverySettings?.delivery_fee ?? 0}
+                placeholder="0.00"
+                className={inputCls}
+              />
+              <p className="text-xs text-gray-400 dark:text-neutral-500 mt-1">Set to 0 for free delivery.</p>
+            </div>
+
+            {/* Free delivery threshold */}
+            <div>
+              <label className={labelCls}>Free delivery above (optional)</label>
+              <input
+                name="free_delivery_above"
+                type="number"
+                min="0"
+                step="0.01"
+                defaultValue={deliverySettings?.free_delivery_above ?? ''}
+                placeholder="e.g. 200"
+                className={inputCls}
+              />
+              <p className="text-xs text-gray-400 dark:text-neutral-500 mt-1">
+                Orders above this amount get free delivery. Leave blank to always charge the fee.
+              </p>
+            </div>
+
+            {/* Estimated times */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={labelCls}>Pickup time (optional)</label>
+                <input
+                  name="estimated_time_pickup"
+                  type="text"
+                  defaultValue={deliverySettings?.estimated_time_pickup ?? ''}
+                  placeholder="e.g. 15–20 min"
+                  className={inputCls}
+                />
+              </div>
+              <div>
+                <label className={labelCls}>Delivery time (optional)</label>
+                <input
+                  name="estimated_time_delivery"
+                  type="text"
+                  defaultValue={deliverySettings?.estimated_time_delivery ?? ''}
+                  placeholder="e.g. 30–45 min"
+                  className={inputCls}
+                />
+              </div>
+            </div>
+
+            <SubmitButton
+              pendingText="Saving…"
+              className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-60"
+            >
+              Save delivery settings
+            </SubmitButton>
+          </form>
+        </div>
+      )}
     </div>
   )
 }

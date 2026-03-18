@@ -1,0 +1,68 @@
+'use server'
+
+import { getAuthUser } from '@/lib/auth/get-user'
+import { createClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
+
+/**
+ * Place a new order.
+ * Cart items are passed as JSON from the client (display prices only).
+ * The create_order RPC re-reads authoritative prices from the DB.
+ */
+export async function placeOrder(formData: FormData): Promise<void> {
+  await getAuthUser() // ensure authenticated
+
+  const businessId        = formData.get('business_id') as string
+  const fulfillmentMethod = formData.get('fulfillment_method') as string
+  const customerNote      = (formData.get('customer_note') as string) || null
+  const deliveryAddress   = (formData.get('delivery_address') as string) || null
+  const itemsJson         = formData.get('items') as string
+
+  if (!businessId || !fulfillmentMethod || !itemsJson) {
+    redirect('/app/checkout?error=' + encodeURIComponent('Missing required fields'))
+  }
+
+  let items: { product_id: string; quantity: number }[]
+  try {
+    const raw = JSON.parse(itemsJson) as { productId: string; quantity: number }[]
+    items = raw.map((i) => ({ product_id: i.productId, quantity: i.quantity }))
+  } catch {
+    redirect('/app/checkout?error=' + encodeURIComponent('Invalid cart data'))
+  }
+
+  const supabase = await createClient()
+  const { data: orderId, error } = await supabase.rpc('create_order', {
+    p_business_id:        businessId,
+    p_fulfillment_method: fulfillmentMethod,
+    p_customer_note:      customerNote,
+    p_delivery_address:   deliveryAddress,
+    p_items:              items,
+  })
+
+  if (error) {
+    redirect('/app/checkout?error=' + encodeURIComponent(error.message))
+  }
+
+  redirect(`/app/orders/${orderId}?placed=1`)
+}
+
+/**
+ * Cancel an order (customer — only allowed while status is pending).
+ * Redirects back to the order page with a success or error param.
+ */
+export async function cancelOrder(orderId: string): Promise<void> {
+  await getAuthUser()
+
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('orders')
+    .update({ status: 'cancelled' })
+    .eq('id', orderId)
+    .eq('status', 'pending') // RLS also enforces this, double-checked here
+
+  if (error) {
+    redirect(`/app/orders/${orderId}?error=` + encodeURIComponent(error.message))
+  }
+
+  redirect(`/app/orders/${orderId}?cancelled=1`)
+}
