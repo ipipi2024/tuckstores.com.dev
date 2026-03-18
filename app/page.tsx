@@ -76,7 +76,7 @@ export default async function Home() {
           {user ? (
             <>
               <Link
-                href="/dashboard"
+                href="/business/select"
                 className="text-sm bg-black dark:bg-white text-white dark:text-black px-4 py-2 rounded-lg font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
               >
                 Go to dashboard
@@ -124,7 +124,7 @@ export default async function Home() {
         <div className="flex gap-3 justify-center mt-8">
           {user ? (
             <Link
-              href="/dashboard"
+              href="/business/select"
               className="px-6 py-3 rounded-lg bg-black dark:bg-white text-white dark:text-black font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
             >
               Go to dashboard
@@ -205,7 +205,7 @@ export default async function Home() {
                 Head to your dashboard to manage your store.
               </p>
               <Link
-                href="/dashboard"
+                href="/business/select"
                 className="inline-block mt-2 px-6 py-3 rounded-lg bg-white dark:bg-black text-black dark:text-white font-medium hover:bg-gray-100 dark:hover:bg-neutral-900 transition-colors"
               >
                 Go to dashboard

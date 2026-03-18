@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getBusinessContext, isSubscriptionActive } from '@/lib/auth/get-business-context'
-import { canPerform } from '@/lib/auth/permissions'
+import { canPerform, isAtLeastRole } from '@/lib/auth/permissions'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -154,7 +154,9 @@ export async function updateProduct(slug: string, id: string, formData: FormData
 export async function deleteProduct(slug: string, id: string) {
   const ctx = await getBusinessContext(slug)
 
-  if (!canPerform(ctx.membership.role, 'manage_products')) {
+  // DB RLS for products:delete requires owner or admin — managers are blocked at the DB
+  // layer. Check isAtLeastRole('admin') here to prevent a false-success redirect.
+  if (!isAtLeastRole(ctx.membership.role, 'admin')) {
     return { error: 'Insufficient permissions' }
   }
 

@@ -13,6 +13,8 @@ import {
   Tag,
   Truck,
   Users,
+  MessageSquare,
+  Megaphone,
   Settings2,
   CreditCard,
   Menu,
@@ -44,7 +46,9 @@ const ALL_NAV: NavItem[] = [
   { label: 'Inventory',  path: '/inventory',   icon: Boxes,                      minRole: 'staff' },
   { label: 'Products',   path: '/products',    icon: Tag,                        minRole: 'staff' },
   { label: 'Suppliers',  path: '/suppliers',   icon: Truck,                      minRole: 'inventory_clerk' },
-  { label: 'Staff',      path: '/staff',       icon: Users,                      minRole: 'admin' },
+  { label: 'Messages',       path: '/messages',       icon: MessageSquare, minRole: 'staff' },
+  { label: 'Announcements', path: '/announcements', icon: Megaphone,     minRole: 'manager' },
+  { label: 'Staff',         path: '/staff',         icon: Users,         minRole: 'admin' },
   { label: 'Settings',   path: '/settings',    icon: Settings2,                  minRole: 'admin' },
   { label: 'Billing',    path: '/billing',     icon: CreditCard,                 minRole: 'owner' },
 ]
@@ -145,7 +149,7 @@ export default function BusinessNav({ slug, businessName, role }: Props) {
         }`}
       >
         <div className="flex items-center justify-between px-5 border-b dark:border-neutral-800 h-14">
-          <span className="text-base font-bold tracking-tight">TouchStore</span>
+          <span className="text-base font-bold tracking-tight">TuckStores</span>
           <button
             onClick={() => setCollapsed(true)}
             aria-label="Collapse sidebar"
@@ -205,7 +209,7 @@ export default function BusinessNav({ slug, businessName, role }: Props) {
         }`}
       >
         <div className="flex items-center justify-between px-5 py-4 border-b dark:border-neutral-800">
-          <span className="text-base font-bold tracking-tight">TouchStore</span>
+          <span className="text-base font-bold tracking-tight">TuckStores</span>
           <button
             onClick={() => setDrawerOpen(false)}
             aria-label="Close menu"

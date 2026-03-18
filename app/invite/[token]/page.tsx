@@ -1,6 +1,10 @@
 import { getAuthUserOrNull } from '@/lib/auth/get-user'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+
+// Invitation lookup must use the admin client: the invitee is not yet a member
+// of the business, so the RLS policy "select for owner or admin" would block
+// a regular authenticated client from reading their own invitation.
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { CheckCircle2, AlertCircle, LogIn, UserPlus } from 'lucide-react'
@@ -19,10 +23,11 @@ const ROLE_LABELS: Record<string, string> = {
 export default async function AcceptInvitePage({ params }: Props) {
   const { token } = await params
 
+  const admin = createAdminClient()
   const supabase = await createClient()
 
-  // Load the invitation
-  const { data: invitation } = await supabase
+  // Load the invitation via admin client (bypasses RLS — invitee is not yet a member)
+  const { data: invitation } = await admin
     .from('business_invitations')
     .select(`
       id, email, role, status, expires_at,
@@ -210,11 +215,8 @@ export default async function AcceptInvitePage({ params }: Props) {
     )
   }
 
-  // Create the membership and accept the invitation in two DB operations.
-  // Use admin client for membership insert to ensure it bypasses any edge-case
-  // RLS timing issues during the acceptance handshake.
-  const admin = createAdminClient()
-
+  // Create the membership and accept the invitation atomically via admin client,
+  // which bypasses RLS timing issues during the acceptance handshake.
   if (existingMembership) {
     // Revoked membership — update back to active with new role
     const { error: updateErr } = await admin

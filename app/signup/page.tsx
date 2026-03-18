@@ -4,9 +4,9 @@ import { signUp } from '@/app/auth/actions'
 export default async function SignUpPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>
+  searchParams: Promise<{ error?: string; next?: string }>
 }) {
-  const { error } = await searchParams
+  const { error, next } = await searchParams
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-neutral-950 px-4">
@@ -24,6 +24,7 @@ export default async function SignUpPage({
           )}
 
           <form action={signUp} className="space-y-4">
+            {next && <input type="hidden" name="next" value={next} />}
             <div>
               <label htmlFor="email" className="block text-sm font-medium mb-1.5">
                 Email

@@ -310,6 +310,22 @@ export async function reactivateMembership(slug: string, membershipId: string): 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
+  // Load target to verify ownership and role managability
+  const { data: target } = await supabase
+    .from('business_memberships')
+    .select('id, user_id, role, status')
+    .eq('id', membershipId)
+    .eq('business_id', ctx.business.id)
+    .maybeSingle()
+
+  if (!target) return { error: 'Membership not found' }
+  if (target.status !== 'suspended') return { error: 'Membership is not suspended' }
+
+  // Prevent actor from reactivating a member whose role they cannot manage
+  if (!canAssignRole(ctx.membership.role, target.role as MembershipRole)) {
+    return { error: 'You cannot manage this member\'s role' }
+  }
+
   const { error } = await supabase
     .from('business_memberships')
     .update({ status: 'active' })

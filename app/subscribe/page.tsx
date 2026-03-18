@@ -20,7 +20,7 @@ export default async function SubscribePage() {
           </h1>
           <p className="text-sm text-gray-500 dark:text-neutral-400">
             Your monthly access has expired or hasn&apos;t been activated yet.
-            Contact your TuckStores provider to renew for <strong>$10/month</strong>.
+            Contact your TuckStores provider to renew.
           </p>
         </div>
         <p className="text-xs text-gray-400 dark:text-neutral-500">

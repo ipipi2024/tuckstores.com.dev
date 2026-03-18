@@ -3,9 +3,9 @@ import { verifyEmail, resendVerification } from '@/app/auth/actions'
 export default async function VerifyEmailPage({
   searchParams,
 }: {
-  searchParams: Promise<{ email?: string; error?: string; resent?: string }>
+  searchParams: Promise<{ email?: string; error?: string; resent?: string; next?: string }>
 }) {
-  const { email, error, resent } = await searchParams
+  const { email, error, resent, next } = await searchParams
 
   if (!email) {
     return (
@@ -38,6 +38,7 @@ export default async function VerifyEmailPage({
 
           <form action={verifyEmail} className="space-y-4">
             <input type="hidden" name="email" value={email} />
+            {next && <input type="hidden" name="next" value={next} />}
             <div>
               <label htmlFor="token" className="block text-sm font-medium mb-1.5">
                 Verification code

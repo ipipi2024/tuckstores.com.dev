@@ -3,9 +3,10 @@ import { canPerform, ROLE_LEVEL, type MembershipRole } from '@/lib/auth/permissi
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Users, UserPlus, Mail, AlertCircle, CheckCircle2, Clock, Copy } from 'lucide-react'
+import { Users, UserPlus, Mail, AlertCircle, CheckCircle2, Clock } from 'lucide-react'
 import MemberActions from './MemberActions'
 import InvitationActions from './InvitationActions'
+import CopyButton from './CopyButton'
 
 type Props = {
   params: Promise<{ slug: string }>
@@ -135,15 +136,7 @@ export default async function StaffPage({ params, searchParams }: Props) {
             <code className="flex-1 text-xs bg-white dark:bg-neutral-900 border border-green-200 dark:border-green-800 rounded px-3 py-1.5 text-gray-700 dark:text-gray-300 break-all">
               {inviteLink}
             </code>
-            <button
-              onClick={undefined}
-              data-copy={inviteLink}
-              id="copy-invite-btn"
-              className="shrink-0 p-1.5 rounded text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/40 transition-colors"
-              title="Copy link"
-            >
-              <Copy size={14} />
-            </button>
+            <CopyButton text={inviteLink} />
           </div>
           <p className="text-xs text-green-600 dark:text-green-500">Expires in 7 days. Valid for one use.</p>
         </div>

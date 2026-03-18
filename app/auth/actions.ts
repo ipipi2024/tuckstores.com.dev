@@ -4,16 +4,20 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getUserMemberships } from '@/lib/auth/get-business-context'
+import { safeNext } from '@/lib/auth/safe-next'
 
 /**
- * Post-auth redirect: sends users to the right destination based on
- * how many active business memberships they have.
+ * Post-auth redirect: if a safe `next` URL is provided, go there.
+ * Otherwise, sends users to the right destination based on memberships.
  *
  *   0 memberships  → /business/select  (create or browse as customer)
  *   1 membership   → /business/[slug]/dashboard
  *   2+ memberships → /business/select  (choose which business)
  */
-async function redirectAfterAuth(): Promise<never> {
+async function redirectAfterAuth(next?: string | null): Promise<never> {
+  const safe = safeNext(next)
+  if (safe) redirect(safe)
+
   const memberships = await getUserMemberships()
 
   if (memberships.length === 1) {
@@ -29,9 +33,12 @@ export async function signUp(formData: FormData) {
   const email = formData.get('email') as string
   const password = formData.get('password') as string
   const fullName = (formData.get('full_name') as string | null)?.trim() || null
+  const next = safeNext(formData.get('next') as string | null)
+
+  const nextQs = next ? `&next=${encodeURIComponent(next)}` : ''
 
   if (!email || !password) {
-    redirect('/signup?error=Email+and+password+are+required')
+    redirect(`/signup?error=Email+and+password+are+required${nextQs}`)
   }
 
   const { error } = await supabase.auth.signUp({
@@ -42,9 +49,9 @@ export async function signUp(formData: FormData) {
     },
   })
 
-  if (error) redirect(`/signup?error=${encodeURIComponent(error.message)}`)
+  if (error) redirect(`/signup?error=${encodeURIComponent(error.message)}${nextQs}`)
 
-  redirect(`/verify-email?email=${encodeURIComponent(email)}`)
+  redirect(`/verify-email?email=${encodeURIComponent(email)}${nextQs}`)
 }
 
 export async function verifyEmail(formData: FormData) {
@@ -52,6 +59,7 @@ export async function verifyEmail(formData: FormData) {
 
   const email = formData.get('email') as string
   const token = formData.get('token') as string
+  const next = safeNext(formData.get('next') as string | null)
 
   const { error } = await supabase.auth.verifyOtp({
     email,
@@ -60,15 +68,14 @@ export async function verifyEmail(formData: FormData) {
   })
 
   if (error) {
+    const nextQs = next ? `&next=${encodeURIComponent(next)}` : ''
     redirect(
-      `/verify-email?email=${encodeURIComponent(email)}&error=${encodeURIComponent(error.message)}`
+      `/verify-email?email=${encodeURIComponent(email)}&error=${encodeURIComponent(error.message)}${nextQs}`
     )
   }
 
   revalidatePath('/', 'layout')
-
-  // New users have no memberships — go to business selector
-  redirect('/business/select')
+  await redirectAfterAuth(next)
 }
 
 export async function resendVerification(formData: FormData) {
@@ -129,17 +136,20 @@ export async function signIn(formData: FormData) {
 
   const email = formData.get('email') as string
   const password = formData.get('password') as string
+  const next = safeNext(formData.get('next') as string | null)
+
+  const nextQs = next ? `&next=${encodeURIComponent(next)}` : ''
 
   if (!email || !password) {
-    redirect('/login?error=Email+and+password+are+required')
+    redirect(`/login?error=Email+and+password+are+required${nextQs}`)
   }
 
   const { error } = await supabase.auth.signInWithPassword({ email, password })
 
-  if (error) redirect(`/login?error=${encodeURIComponent(error.message)}`)
+  if (error) redirect(`/login?error=${encodeURIComponent(error.message)}${nextQs}`)
 
   revalidatePath('/', 'layout')
-  await redirectAfterAuth()
+  await redirectAfterAuth(next)
 }
 
 export async function signOut() {

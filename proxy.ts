@@ -24,19 +24,7 @@ export async function proxy(request: NextRequest) {
   )
 
   // Refresh session — do not add logic between createServerClient and getUser
-  const { data: { user } } = await supabase.auth.getUser()
-
-  const { pathname } = request.nextUrl
-
-  // Redirect unauthenticated users away from protected routes
-  if (!user && pathname.startsWith('/dashboard')) {
-    return NextResponse.redirect(new URL('/login', request.url))
-  }
-
-  // Redirect authenticated users away from auth pages
-  if (user && (pathname === '/login' || pathname === '/signup')) {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
-  }
+  await supabase.auth.getUser()
 
   return supabaseResponse
 }

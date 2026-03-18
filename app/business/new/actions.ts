@@ -14,20 +14,21 @@ function slugify(name: string): string {
     .slice(0, 50) || 'business'
 }
 
-async function findUniqueSlug(base: string): Promise<string> {
-  const admin = createAdminClient()
-  let slug = base
-  let attempt = 0
-  while (true) {
+const MAX_SLUG_ATTEMPTS = 20
+const MAX_OWNED_BUSINESSES = 10
+
+async function findUniqueSlug(admin: ReturnType<typeof createAdminClient>, base: string): Promise<string> {
+  for (let attempt = 0; attempt <= MAX_SLUG_ATTEMPTS; attempt++) {
+    const candidate = attempt === 0 ? base : `${base}-${attempt}`
     const { data } = await admin
       .from('businesses')
       .select('id')
-      .eq('slug', slug)
+      .eq('slug', candidate)
       .maybeSingle()
-    if (!data) return slug
-    attempt++
-    slug = `${base}-${attempt}`
+    if (!data) return candidate
   }
+  // All retries exhausted — timestamp suffix is effectively always unique
+  return `${base}-${Date.now()}`
 }
 
 export async function createBusiness(formData: FormData) {
@@ -48,8 +49,20 @@ export async function createBusiness(formData: FormData) {
 
   const admin = createAdminClient()
 
-  // Resolve unique slug
-  const slug = await findUniqueSlug(slugify(name))
+  // Guard against runaway business creation per user
+  const { count: ownedCount } = await admin
+    .from('business_memberships')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+    .eq('role', 'owner')
+    .eq('status', 'active')
+
+  if ((ownedCount ?? 0) >= MAX_OWNED_BUSINESSES) {
+    redirect('/business/new?error=You+have+reached+the+maximum+number+of+businesses')
+  }
+
+  // Resolve unique slug (bounded — falls back to timestamp suffix if all attempts taken)
+  const slug = await findUniqueSlug(admin, slugify(name))
 
   // Look up the free_trial plan
   const { data: plan, error: planError } = await admin
