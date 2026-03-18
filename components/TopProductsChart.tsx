@@ -5,8 +5,10 @@ import { useState } from 'react'
 type Product = { name: string; revenue: number; quantity: number }
 type SortBy = 'revenue' | 'quantity'
 
-export default function TopProductsChart({ products }: { products: Product[] }) {
+export default function TopProductsChart({ products, currencyCode }: { products: Product[]; currencyCode: string }) {
   const [sortBy, setSortBy] = useState<SortBy>('revenue')
+  const fmt = (n: number) =>
+    new Intl.NumberFormat(undefined, { style: 'currency', currency: currencyCode, minimumFractionDigits: 2 }).format(n)
 
   const sorted = [...products].sort((a, b) => b[sortBy] - a[sortBy])
   const max = sorted[0]?.[sortBy] ?? 1
@@ -34,7 +36,7 @@ export default function TopProductsChart({ products }: { products: Product[] }) 
       <div className="space-y-3">
         {sorted.map((p, i) => {
           const pct = max > 0 ? (p[sortBy] / max) * 100 : 0
-          const value = sortBy === 'revenue' ? `R${p.revenue.toFixed(2)}` : `${p.quantity} units`
+          const value = sortBy === 'revenue' ? fmt(p.revenue) : `${p.quantity} units`
           return (
             <div key={p.name} className="flex items-center gap-3">
               <span className="text-xs text-gray-400 dark:text-neutral-500 w-4 shrink-0">{i + 1}</span>

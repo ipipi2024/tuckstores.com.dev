@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useCallback, useMemo, useRef } from 'react'
+import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
   Search, Plus, Minus, Trash2, ChevronRight,
-  CheckCircle2, ArrowLeft, ShoppingCart, X, User
+  CheckCircle2, ArrowLeft, ShoppingCart, X, User, AlertCircle
 } from 'lucide-react'
 import type { CompleteSalePayload, CompleteSaleResult, SaleItem } from './actions'
 
@@ -69,6 +70,14 @@ type Props = {
 
 export default function POSClient({ products, currencyCode, completeSale, slug }: Props) {
   const fmt = useFmt(currencyCode)
+  const router = useRouter()
+
+  // Refresh product stock whenever the tab regains focus (lightweight: triggers RSC re-fetch)
+  useEffect(() => {
+    const onFocus = () => router.refresh()
+    window.addEventListener('focus', onFocus)
+    return () => window.removeEventListener('focus', onFocus)
+  }, [router])
 
   // State
   const [query, setQuery] = useState('')
@@ -146,7 +155,8 @@ export default function POSClient({ products, currencyCode, completeSale, slug }
     setCart((prev) => prev.filter((i) => i.product_id !== productId))
   }
 
-  function clearCart() {
+  function clearCart(skipConfirm = false) {
+    if (!skipConfirm && cart.length > 0 && !window.confirm('Clear the cart?')) return
     setCart([])
     setQuery('')
     setPaymentMethod('cash')
@@ -234,7 +244,7 @@ export default function POSClient({ products, currencyCode, completeSale, slug }
 
         <div className="flex gap-3">
           <button
-            onClick={clearCart}
+            onClick={() => clearCart(true)}
             className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors"
           >
             New sale
@@ -342,7 +352,10 @@ export default function POSClient({ products, currencyCode, completeSale, slug }
         </div>
 
         {error && (
-          <p className="text-sm text-red-600 dark:text-red-400 px-1">{error}</p>
+          <div className="flex items-start gap-2 rounded-xl bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 px-4 py-3 text-sm text-red-700 dark:text-red-300">
+            <AlertCircle size={15} className="flex-shrink-0 mt-0.5" />
+            <span>{error}</span>
+          </div>
         )}
 
         <button
@@ -453,7 +466,7 @@ export default function POSClient({ products, currencyCode, completeSale, slug }
             </div>
             {cart.length > 0 && (
               <button
-                onClick={clearCart}
+                onClick={() => clearCart()}
                 className="text-xs text-gray-400 hover:text-red-500 transition-colors"
               >
                 Clear

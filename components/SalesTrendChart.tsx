@@ -54,18 +54,23 @@ function formatLabel(date: string, period: Period) {
   return dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
 }
 
-const CustomTooltip = ({ active, payload, label, period }: any) => {
+const CustomTooltip = ({ active, payload, label, period, fmt }: any) => {
   if (!active || !payload?.length) return null
   return (
     <div className="bg-white dark:bg-neutral-900 border dark:border-neutral-700 rounded-lg px-3 py-2 text-xs shadow">
       <p className="font-medium mb-1">{formatLabel(label, period)}</p>
-      <p>Revenue: <span className="font-semibold">R{Number(payload[0]?.value ?? 0).toFixed(2)}</span></p>
+      <p>Revenue: <span className="font-semibold">{fmt(Number(payload[0]?.value ?? 0))}</span></p>
       <p>Sales: <span className="font-semibold">{payload[0]?.payload?.sales}</span></p>
     </div>
   )
 }
 
-export default function SalesTrendChart({ daily }: { daily: DailyPoint[] }) {
+export default function SalesTrendChart({ daily, currencyCode }: { daily: DailyPoint[]; currencyCode: string }) {
+  const fmt = useMemo(
+    () => (n: number) =>
+      new Intl.NumberFormat(undefined, { style: 'currency', currency: currencyCode, minimumFractionDigits: 2 }).format(n),
+    [currencyCode]
+  )
   const [period, setPeriod] = useState<Period>('daily')
 
   const data = useMemo(() => {
@@ -100,7 +105,7 @@ export default function SalesTrendChart({ daily }: { daily: DailyPoint[] }) {
       <div className="flex gap-6 text-sm">
         <div>
           <span className="text-gray-500 dark:text-neutral-400">Total revenue </span>
-          <span className="font-semibold">R{totalRevenue.toFixed(2)}</span>
+          <span className="font-semibold">{fmt(totalRevenue)}</span>
         </div>
         <div>
           <span className="text-gray-500 dark:text-neutral-400">Total sales </span>
@@ -123,14 +128,14 @@ export default function SalesTrendChart({ daily }: { daily: DailyPoint[] }) {
               fill="currentColor"
             />
             <YAxis
-              tickFormatter={(v) => `R${v}`}
+              tickFormatter={(v) => fmt(v)}
               tick={{ fontSize: 11 }}
               tickLine={false}
               axisLine={false}
               className="fill-gray-400 dark:fill-neutral-500"
               fill="currentColor"
             />
-            <Tooltip content={<CustomTooltip period={period} />} cursor={{ fill: 'rgba(0,0,0,0.04)' }} />
+            <Tooltip content={<CustomTooltip period={period} fmt={fmt} />} cursor={{ fill: 'rgba(0,0,0,0.04)' }} />
             <Bar dataKey="revenue" radius={[3, 3, 0, 0]} className="fill-black dark:fill-white" fill="currentColor" />
           </BarChart>
         </ResponsiveContainer>
