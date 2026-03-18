@@ -1,6 +1,6 @@
 import { getAuthUser } from '@/lib/auth/get-user'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { Receipt, TrendingUp, ShoppingBag, Calendar } from 'lucide-react'
+import { Receipt, TrendingUp, ShoppingBag, Calendar, Store, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 
 function fmtCurrency(amount: number, currency: string): string {
@@ -116,6 +116,23 @@ export default async function AppHomePage() {
           </div>
         </div>
       </div>
+
+      {/* Browse stores */}
+      <Link
+        href="/businesses"
+        className="flex items-center justify-between bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
+            <Store size={16} className="text-indigo-600 dark:text-indigo-400" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-gray-900 dark:text-white">Browse stores</p>
+            <p className="text-xs text-gray-400 dark:text-neutral-500">View products and prices</p>
+          </div>
+        </div>
+        <ChevronRight size={16} className="text-gray-400 dark:text-neutral-500" />
+      </Link>
 
       {/* Recent receipts */}
       <div className="space-y-2">
