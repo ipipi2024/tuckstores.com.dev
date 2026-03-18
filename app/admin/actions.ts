@@ -1,10 +1,8 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-// Uses SUPABASE_SECRET_KEY + ADMIN_EMAIL from .env.local
 
 export async function grantCredit(formData: FormData) {
   const supabase = await createClient()
@@ -15,10 +13,9 @@ export async function grantCredit(formData: FormData) {
   }
 
   const userId = formData.get('user_id') as string
-  const admin = createAdminClient()
 
   // Extend from current expiry if still active, otherwise from now
-  const { data: existing } = await admin
+  const { data: existing } = await supabase
     .from('subscriptions')
     .select('expires_at')
     .eq('user_id', userId)
@@ -32,7 +29,7 @@ export async function grantCredit(formData: FormData) {
   const newExpiry = new Date(base)
   newExpiry.setDate(newExpiry.getDate() + 30)
 
-  await admin.from('subscriptions').upsert(
+  await supabase.from('subscriptions').upsert(
     {
       user_id: userId,
       expires_at: newExpiry.toISOString(),

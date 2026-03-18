@@ -1,5 +1,4 @@
 import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { grantCredit } from './actions'
 import { GrantCreditButton } from './GrantCreditButton'
@@ -19,13 +18,12 @@ export default async function AdminPage() {
     redirect('/dashboard')
   }
 
-  const admin = createAdminClient()
   const [{ data: users }, { data: subs }] = await Promise.all([
-    admin
+    supabase
       .from('users')
       .select('id, email, full_name, created_at')
       .order('created_at', { ascending: false }),
-    admin
+    supabase
       .from('subscriptions')
       .select('user_id, expires_at'),
   ])
@@ -43,6 +41,10 @@ export default async function AdminPage() {
             Grant +30 days to any user after they pay.
           </p>
         </div>
+
+        {(!users || users.length === 0) && (
+          <p className="text-sm text-gray-400 dark:text-neutral-500">No users found.</p>
+        )}
 
         <div className="space-y-2">
           {(users as UserRow[] | null)?.map(u => {
