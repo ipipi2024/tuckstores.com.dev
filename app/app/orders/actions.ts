@@ -46,22 +46,26 @@ export async function placeOrder(formData: FormData): Promise<void> {
   redirect(`/app/orders/${orderId}?placed=1`)
 }
 
-/**
- * Cancel an order (customer — only allowed while status is pending).
- * Redirects back to the order page with a success or error param.
- */
 export async function cancelOrder(orderId: string): Promise<void> {
   await getAuthUser()
 
   const supabase = await createClient()
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('orders')
     .update({ status: 'cancelled' })
     .eq('id', orderId)
-    .eq('status', 'pending') // RLS also enforces this, double-checked here
+    .in('status', ['pending', 'accepted'])
+    .select('id')
 
   if (error) {
     redirect(`/app/orders/${orderId}?error=` + encodeURIComponent(error.message))
+  }
+
+  if (!data || data.length === 0) {
+    redirect(
+      `/app/orders/${orderId}?error=` +
+        encodeURIComponent('This order can no longer be cancelled because preparation has already started.')
+    )
   }
 
   redirect(`/app/orders/${orderId}?cancelled=1`)

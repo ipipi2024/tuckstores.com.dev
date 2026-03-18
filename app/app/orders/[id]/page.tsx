@@ -226,8 +226,7 @@ export default async function OrderDetailPage({ params, searchParams }: Props) {
         </div>
       )}
 
-      {/* Cancel (only while pending) */}
-      {order.status === 'pending' && (
+      {(order.status === 'pending' || order.status === 'accepted') && (
         <CancelOrderButton orderId={order.id} />
       )}
 
