@@ -78,8 +78,6 @@ export default async function SaleDetailPage({ params }: Props) {
   const items = sale.sale_items ?? []
   const payments = sale.sale_payments ?? []
 
-  // Customer identity: linked user takes precedence; fall back to snapshot; else guest
-  const customerName = sale.customer_name_snapshot ?? (sale.customer_user_id ? 'Linked customer' : null)
   const customerPhone = sale.customer_phone_snapshot
 
   return (
@@ -117,16 +115,13 @@ export default async function SaleDetailPage({ params }: Props) {
           <User size={15} className="text-gray-400" />
           <h2 className="text-sm font-medium text-gray-700 dark:text-gray-300">Customer</h2>
         </div>
-        {customerName || customerPhone || sale.customer_user_id ? (
+        {sale.customer_name_snapshot || sale.customer_phone_snapshot || sale.customer_user_id ? (
           <div className="space-y-1">
-            {customerName && (
-              <p className="text-sm text-gray-900 dark:text-white font-medium">{customerName}</p>
-            )}
-            {customerPhone && (
-              <p className="text-sm text-gray-500 dark:text-gray-400">{customerPhone}</p>
-            )}
-            {sale.customer_user_id && (
-              <p className="text-xs text-gray-400 dark:text-neutral-500 font-mono">{sale.customer_user_id}</p>
+            <p className="text-sm text-gray-900 dark:text-white font-medium">
+              {sale.customer_name_snapshot ?? 'Linked platform user'}
+            </p>
+            {sale.customer_phone_snapshot && (
+              <p className="text-sm text-gray-500 dark:text-gray-400">{sale.customer_phone_snapshot}</p>
             )}
           </div>
         ) : (

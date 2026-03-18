@@ -1,7 +1,10 @@
-import { getBusinessContext } from '@/lib/auth/get-business-context'
+import { getBusinessContext, isSubscriptionActive } from '@/lib/auth/get-business-context'
 import { canPerform } from '@/lib/auth/permissions'
+import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { ShoppingCart } from 'lucide-react'
+import { AlertCircle } from 'lucide-react'
+import POSClient from './POSClient'
+import { completeSale } from './actions'
 
 type Props = { params: Promise<{ slug: string }> }
 
@@ -13,17 +16,49 @@ export default async function POSPage({ params }: Props) {
     redirect(`/business/${slug}/dashboard`)
   }
 
+  if (!isSubscriptionActive(ctx)) {
+    return (
+      <div className="flex items-center gap-2 rounded-lg bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 px-4 py-3 text-sm text-red-700 dark:text-red-300 max-w-lg">
+        <AlertCircle size={15} className="flex-shrink-0" />
+        Subscription is not active. POS is unavailable.
+      </div>
+    )
+  }
+
+  const supabase = await createClient()
+
+  // Fetch active products with their current stock
+  const { data: products } = await supabase
+    .from('products')
+    .select(`
+      id, name, sku, selling_price,
+      product_stock ( stock_quantity )
+    `)
+    .eq('business_id', ctx.business.id)
+    .eq('is_active', true)
+    .order('name')
+
+  // Normalise stock into a flat list
+  const productList = (products ?? []).map((p) => {
+    const stockRows = Array.isArray(p.product_stock) ? p.product_stock : (p.product_stock ? [p.product_stock] : [])
+    const stock = stockRows.reduce((sum: number, r: { stock_quantity: number | null }) => sum + (r.stock_quantity ?? 0), 0)
+    return {
+      id: p.id,
+      name: p.name,
+      sku: p.sku ?? null,
+      selling_price: p.selling_price ?? 0,
+      stock,
+    }
+  })
+
+  const action = completeSale.bind(null, slug)
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-4">
-      <div className="w-16 h-16 rounded-2xl bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center">
-        <ShoppingCart size={28} className="text-indigo-600 dark:text-indigo-400" />
-      </div>
-      <div>
-        <h1 className="text-xl font-bold text-gray-900 dark:text-white">Point of Sale</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          POS is being rebuilt. Coming in the next phase.
-        </p>
-      </div>
-    </div>
+    <POSClient
+      products={productList}
+      currencyCode={ctx.business.currency_code}
+      completeSale={action}
+      slug={slug}
+    />
   )
 }
