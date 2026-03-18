@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { Plus, Trash2 } from 'lucide-react'
+import Spinner from '@/components/ui/Spinner'
 
 type Product = { id: string; name: string; cost_price_default: number | null }
 type Supplier = { id: string; name: string }
@@ -205,7 +206,12 @@ export default function NewPurchaseForm({ action, products, suppliers, currencyC
           disabled={submitting || lines.every((l) => !l.product_id)}
           className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
         >
-          {submitting ? 'Saving…' : 'Save purchase'}
+          {submitting ? (
+            <span className="inline-flex items-center gap-1.5">
+              <Spinner className="w-3.5 h-3.5" />
+              Saving…
+            </span>
+          ) : 'Save purchase'}
         </button>
         <Link
           href={`/business/${slug}/purchases`}

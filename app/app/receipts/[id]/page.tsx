@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Store, MessageSquare } from 'lucide-react'
 import { findOrCreateConversation } from '@/app/app/messages/actions'
+import SubmitButton from '@/components/ui/SubmitButton'
 
 type Props = { params: Promise<{ id: string }> }
 
@@ -206,13 +207,13 @@ export default async function ReceiptDetailPage({ params }: Props) {
       {/* Contact business */}
       {biz && (
         <form action={findOrCreateConversation.bind(null, sale_business_id)}>
-          <button
-            type="submit"
-            className="w-full flex items-center justify-center gap-2 py-2.5 border border-gray-200 dark:border-neutral-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 rounded-xl transition-colors"
+          <SubmitButton
+            pendingText="Opening chat…"
+            className="w-full flex items-center justify-center gap-2 py-2.5 border border-gray-200 dark:border-neutral-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 rounded-xl transition-colors disabled:opacity-60"
           >
             <MessageSquare size={15} />
             Contact {biz.name}
-          </button>
+          </SubmitButton>
         </form>
       )}
     </div>

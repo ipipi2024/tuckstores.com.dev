@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { forgotPassword } from '@/app/auth/actions'
+import SubmitButton from '@/components/ui/SubmitButton'
 
 export default async function ForgotPasswordPage({
   searchParams,
@@ -42,12 +43,12 @@ export default async function ForgotPasswordPage({
                   className="w-full border border-gray-300 dark:border-neutral-700 rounded-lg px-3 py-2 text-sm bg-transparent focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white dark:text-white dark:placeholder:text-neutral-500"
                 />
               </div>
-              <button
-                type="submit"
-                className="w-full bg-black dark:bg-white text-white dark:text-black rounded-lg py-2.5 text-sm font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
+              <SubmitButton
+                pendingText="Sending…"
+                className="w-full bg-black dark:bg-white text-white dark:text-black rounded-lg py-2.5 text-sm font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors disabled:opacity-60"
               >
                 Send reset link
-              </button>
+              </SubmitButton>
             </form>
           )}
         </div>

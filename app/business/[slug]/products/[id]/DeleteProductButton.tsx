@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { deleteProduct } from '../actions'
+import Spinner from '@/components/ui/Spinner'
 
 type Props = { slug: string; id: string; productName: string }
 
@@ -50,7 +51,7 @@ export default function DeleteProductButton({ slug, id, productName }: Props) {
           disabled={loading}
           className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 rounded-lg transition-colors"
         >
-          {loading ? 'Deleting…' : 'Yes, delete'}
+          {loading ? <span className="inline-flex items-center gap-1.5"><Spinner className="w-3.5 h-3.5" />Deleting…</span> : 'Yes, delete'}
         </button>
         <button
           onClick={() => setConfirming(false)}

@@ -4,6 +4,7 @@ import { canPerform } from '@/lib/auth/permissions'
 import Link from 'next/link'
 import { Megaphone, Plus } from 'lucide-react'
 import { expireAnnouncement, deleteAnnouncement } from './actions'
+import { ExpireForm, DeleteAnnouncementForm } from './AnnouncementRowActions'
 
 type Props = {
   params: Promise<{ slug: string }>
@@ -138,24 +139,8 @@ export default async function AnnouncementsPage({ params, searchParams }: Props)
 
                 {canManage && (
                   <div className="flex items-center gap-3 pt-1">
-                    {isLive && (
-                      <form action={expireAction}>
-                        <button
-                          type="submit"
-                          className="text-xs text-amber-600 dark:text-amber-400 hover:underline"
-                        >
-                          Expire now
-                        </button>
-                      </form>
-                    )}
-                    <form action={deleteAction}>
-                      <button
-                        type="submit"
-                        className="text-xs text-red-500 dark:text-red-400 hover:underline"
-                      >
-                        Delete
-                      </button>
-                    </form>
+                    {isLive && <ExpireForm action={expireAction} />}
+                    <DeleteAnnouncementForm action={deleteAction} />
                   </div>
                 )}
               </div>

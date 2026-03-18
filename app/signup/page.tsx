@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { signUp } from '@/app/auth/actions'
+import SubmitButton from '@/components/ui/SubmitButton'
 
 export default async function SignUpPage({
   searchParams,
@@ -56,12 +57,12 @@ export default async function SignUpPage({
               <p className="text-xs text-gray-400 dark:text-neutral-500 mt-1.5">At least 6 characters</p>
             </div>
 
-            <button
-              type="submit"
-              className="w-full bg-black dark:bg-white text-white dark:text-black rounded-lg py-2.5 text-sm font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors mt-1"
+            <SubmitButton
+              pendingText="Creating account…"
+              className="w-full bg-black dark:bg-white text-white dark:text-black rounded-lg py-2.5 text-sm font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors mt-1 disabled:opacity-60"
             >
               Create account
-            </button>
+            </SubmitButton>
           </form>
         </div>
 

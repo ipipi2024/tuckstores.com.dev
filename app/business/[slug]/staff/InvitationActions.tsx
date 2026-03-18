@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { revokeInvitation } from './actions'
+import Spinner from '@/components/ui/Spinner'
 
 type Props = { slug: string; invitationId: string }
 
@@ -27,9 +28,10 @@ export default function InvitationActions({ slug, invitationId }: Props) {
       <button
         onClick={handleRevoke}
         disabled={busy}
-        className="text-xs text-red-500 dark:text-red-400 hover:underline disabled:opacity-50"
+        className="text-xs text-red-500 dark:text-red-400 hover:underline disabled:opacity-50 inline-flex items-center gap-1"
       >
-        Revoke
+        {busy && <Spinner className="w-3 h-3" />}
+        {busy ? 'Revoking…' : 'Revoke'}
       </button>
     </div>
   )

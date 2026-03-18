@@ -1,4 +1,5 @@
 import { verifyEmail, resendVerification } from '@/app/auth/actions'
+import SubmitButton from '@/components/ui/SubmitButton'
 
 export default async function VerifyEmailPage({
   searchParams,
@@ -54,24 +55,24 @@ export default async function VerifyEmailPage({
                 className="w-full border border-gray-300 dark:border-neutral-700 rounded-lg px-3 py-2 text-sm bg-transparent focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white dark:text-white dark:placeholder:text-neutral-500 tracking-widest text-center"
               />
             </div>
-            <button
-              type="submit"
-              className="w-full bg-black dark:bg-white text-white dark:text-black rounded-lg py-2.5 text-sm font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
+            <SubmitButton
+              pendingText="Verifying…"
+              className="w-full bg-black dark:bg-white text-white dark:text-black rounded-lg py-2.5 text-sm font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors disabled:opacity-60"
             >
               Verify email
-            </button>
+            </SubmitButton>
           </form>
 
           <div className="border-t border-gray-100 dark:border-neutral-800 pt-4">
             <p className="text-sm text-gray-500 dark:text-neutral-400 text-center mb-3">Didn&apos;t receive a code or it expired?</p>
             <form action={resendVerification}>
               <input type="hidden" name="email" value={email} />
-              <button
-                type="submit"
-                className="w-full border border-gray-300 dark:border-neutral-700 rounded-lg py-2.5 text-sm font-medium hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors"
+              <SubmitButton
+                pendingText="Sending…"
+                className="w-full border border-gray-300 dark:border-neutral-700 rounded-lg py-2.5 text-sm font-medium hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors disabled:opacity-60"
               >
                 Resend code
-              </button>
+              </SubmitButton>
             </form>
           </div>
         </div>

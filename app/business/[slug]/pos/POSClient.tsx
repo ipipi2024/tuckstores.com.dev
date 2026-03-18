@@ -7,6 +7,7 @@ import {
   Search, Plus, Minus, Trash2, ChevronRight,
   CheckCircle2, ArrowLeft, ShoppingCart, X, User, AlertCircle
 } from 'lucide-react'
+import Spinner from '@/components/ui/Spinner'
 import type { CompleteSalePayload, CompleteSaleResult, SaleItem } from './actions'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -363,7 +364,12 @@ export default function POSClient({ products, currencyCode, completeSale, slug }
           disabled={submitting}
           className="w-full py-3.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-base font-semibold rounded-xl transition-colors"
         >
-          {submitting ? 'Processing…' : `Complete sale · ${fmt(cartTotal)}`}
+          {submitting ? (
+            <span className="inline-flex items-center gap-2">
+              <Spinner className="w-4 h-4" />
+              Processing…
+            </span>
+          ) : `Complete sale · ${fmt(cartTotal)}`}
         </button>
       </div>
     )

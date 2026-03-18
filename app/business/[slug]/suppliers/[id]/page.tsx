@@ -6,6 +6,7 @@ import { updateSupplier, deleteSupplier } from '../actions'
 import Link from 'next/link'
 import { ArrowLeft, AlertCircle } from 'lucide-react'
 import DeleteSupplierButton from './DeleteSupplierButton'
+import SubmitButton from '@/components/ui/SubmitButton'
 
 type Props = {
   params: Promise<{ slug: string; id: string }>
@@ -121,9 +122,9 @@ export default async function EditSupplierPage({ params, searchParams }: Props) 
         </Field>
 
         <div className="flex gap-3 pt-2">
-          <button type="submit" className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors">
+          <SubmitButton pendingText="Saving…" className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-60">
             Save changes
-          </button>
+          </SubmitButton>
           <Link href={`/business/${slug}/suppliers`} className="px-5 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white rounded-lg border border-gray-200 dark:border-neutral-700 transition-colors">
             Cancel
           </Link>

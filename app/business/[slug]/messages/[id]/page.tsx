@@ -3,9 +3,10 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Send } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import { sendBusinessMessage } from '../actions'
 import AutoRefresh from '@/app/app/messages/AutoRefresh'
+import MessageSendForm from '@/components/ui/MessageSendForm'
 
 type Props = { params: Promise<{ slug: string; id: string }> }
 
@@ -144,25 +145,7 @@ export default async function BusinessThreadPage({ params }: Props) {
 
       {/* Send form */}
       {conv.status === 'open' ? (
-        <form
-          action={sendAction}
-          className="flex items-end gap-2 pt-4 mt-2 border-t border-gray-100 dark:border-neutral-800"
-        >
-          <textarea
-            name="body"
-            rows={1}
-            required
-            placeholder={`Reply to ${customerName}…`}
-            className="flex-1 resize-none px-3 py-2.5 rounded-xl border border-gray-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 max-h-28 overflow-auto"
-          />
-          <button
-            type="submit"
-            className="shrink-0 w-10 h-10 flex items-center justify-center bg-gray-900 dark:bg-white hover:bg-gray-700 dark:hover:bg-gray-100 text-white dark:text-gray-900 rounded-xl transition-colors"
-            aria-label="Send"
-          >
-            <Send size={16} />
-          </button>
-        </form>
+        <MessageSendForm action={sendAction} placeholder={`Reply to ${customerName}…`} variant="dark" />
       ) : (
         <p className="text-center text-xs text-gray-400 dark:text-neutral-500 pt-4 mt-2 border-t border-gray-100 dark:border-neutral-800">
           This conversation is {conv.status}.

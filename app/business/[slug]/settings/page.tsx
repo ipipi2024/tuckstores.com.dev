@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { Settings2, AlertCircle, CheckCircle2 } from 'lucide-react'
 import { updateBusinessSettings } from './actions'
+import SubmitButton from '@/components/ui/SubmitButton'
 
 type Props = {
   params:       Promise<{ slug: string }>
@@ -229,12 +230,12 @@ export default async function SettingsPage({ params, searchParams }: Props) {
         </div>
 
         <div className="pt-1">
-          <button
-            type="submit"
-            className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors"
+          <SubmitButton
+            pendingText="Saving…"
+            className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-60"
           >
             Save changes
-          </button>
+          </SubmitButton>
         </div>
       </form>
     </div>

@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { createAnnouncement } from '../actions'
+import SubmitButton from '@/components/ui/SubmitButton'
 
 type Props = {
   params: Promise<{ slug: string }>
@@ -126,12 +127,12 @@ export default async function NewAnnouncementPage({ params, searchParams }: Prop
         </div>
 
         <div className="flex items-center gap-3 pt-2">
-          <button
-            type="submit"
-            className="flex-1 py-2.5 rounded-xl bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-sm font-semibold hover:bg-gray-700 dark:hover:bg-gray-100 transition-colors"
+          <SubmitButton
+            pendingText="Publishing…"
+            className="flex-1 py-2.5 rounded-xl bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-sm font-semibold hover:bg-gray-700 dark:hover:bg-gray-100 transition-colors disabled:opacity-60"
           >
             Publish announcement
-          </button>
+          </SubmitButton>
           <Link
             href={`/business/${slug}/announcements`}
             className="px-4 py-2.5 rounded-xl border border-gray-300 dark:border-neutral-700 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors"

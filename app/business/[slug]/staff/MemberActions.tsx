@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { updateMemberRole, suspendMembership, reactivateMembership } from './actions'
 import type { MembershipRole } from '@/lib/auth/permissions'
+import Spinner from '@/components/ui/Spinner'
 
 type Props = {
   slug: string
@@ -69,6 +70,7 @@ export default function MemberActions({
 
   return (
     <div className="flex items-center gap-2 flex-wrap justify-end">
+      {busy && <Spinner className="w-3 h-3 text-gray-400" />}
       {error && <span className="text-xs text-red-500 dark:text-red-400">{error}</span>}
 
       {/* Role select */}

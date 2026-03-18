@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { signOut } from '@/app/auth/actions'
+import SubmitButton from '@/components/ui/SubmitButton'
 import {
   ShoppingCart,
   BarChart2,
@@ -82,12 +83,12 @@ export default async function Home() {
                 Go to dashboard
               </Link>
               <form action={signOut}>
-                <button
-                  type="submit"
-                  className="text-sm text-gray-500 dark:text-neutral-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                <SubmitButton
+                  pendingText="Signing out…"
+                  className="text-sm text-gray-500 dark:text-neutral-400 hover:text-gray-900 dark:hover:text-white transition-colors disabled:opacity-50"
                 >
                   Sign out
-                </button>
+                </SubmitButton>
               </form>
             </>
           ) : (

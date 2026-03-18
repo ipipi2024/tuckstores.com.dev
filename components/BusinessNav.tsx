@@ -27,6 +27,7 @@ import {
 import ThemeToggle from './ThemeToggle'
 import { signOut } from '@/app/auth/actions'
 import { isAtLeastRole } from '@/lib/auth/permissions'
+import SubmitButton from './ui/SubmitButton'
 import type { MembershipRole } from '@/lib/auth/permissions'
 
 type NavItem = {
@@ -113,9 +114,9 @@ export default function BusinessNav({ slug, businessName, role }: Props) {
     <div className="px-4 py-4 border-t dark:border-neutral-800 flex items-center justify-between">
       <ThemeToggle />
       <form action={signOut}>
-        <button className="text-xs text-gray-400 dark:text-neutral-500 hover:text-black dark:hover:text-white transition-colors">
+        <SubmitButton pendingText="…" className="text-xs text-gray-400 dark:text-neutral-500 hover:text-black dark:hover:text-white transition-colors disabled:opacity-50">
           Sign out
-        </button>
+        </SubmitButton>
       </form>
     </div>
   )

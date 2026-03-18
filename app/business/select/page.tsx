@@ -21,7 +21,7 @@ export default async function BusinessSelectPage() {
         {/* Header */}
         <div className="text-center space-y-1">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            {memberships.length === 0 ? 'Welcome to TouchStore' : 'Select a Business'}
+            {memberships.length === 0 ? 'Welcome to TuckStores' : 'Select a Business'}
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400">
             {memberships.length === 0

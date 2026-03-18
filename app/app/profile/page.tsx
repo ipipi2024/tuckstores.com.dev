@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { AlertCircle, CheckCircle2, User, LogOut } from 'lucide-react'
 import { updateProfile } from './actions'
 import { signOut } from '@/app/auth/actions'
+import SubmitButton from '@/components/ui/SubmitButton'
 
 type Props = {
   searchParams: Promise<{ error?: string; success?: string }>
@@ -90,24 +91,24 @@ export default async function ProfilePage({ searchParams }: Props) {
           </p>
         </div>
 
-        <button
-          type="submit"
-          className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors"
+        <SubmitButton
+          pendingText="Saving…"
+          className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-60"
         >
           Save changes
-        </button>
+        </SubmitButton>
       </form>
 
       {/* Sign out */}
       <div className="border-t border-gray-100 dark:border-neutral-800 pt-4">
         <form action={signOut}>
-          <button
-            type="submit"
-            className="flex items-center gap-2 text-sm text-red-500 hover:text-red-700 dark:hover:text-red-400 transition-colors"
+          <SubmitButton
+            pendingText="Signing out…"
+            className="flex items-center gap-2 text-sm text-red-500 hover:text-red-700 dark:hover:text-red-400 transition-colors disabled:opacity-50"
           >
             <LogOut size={15} />
             Sign out
-          </button>
+          </SubmitButton>
         </form>
       </div>
     </div>

@@ -2,6 +2,7 @@ import { getAuthUser } from '@/lib/auth/get-user'
 import { createBusiness } from './actions'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
+import SubmitButton from '@/components/ui/SubmitButton'
 
 export default async function NewBusinessPage({
   searchParams,
@@ -97,12 +98,12 @@ export default async function NewBusinessPage({
             </select>
           </div>
 
-          <button
-            type="submit"
-            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl transition-colors text-sm"
+          <SubmitButton
+            pendingText="Creating…"
+            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl transition-colors text-sm disabled:opacity-60"
           >
             Create Business
-          </button>
+          </SubmitButton>
         </form>
       </div>
     </div>
