@@ -1,21 +1,15 @@
-import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
-
-type SupabaseClient = Awaited<ReturnType<typeof createClient>>
-
+/**
+ * DEPRECATED — This module is a compilation stub only.
+ * The legacy /dashboard/* routes that import this will be deleted in Phase C.
+ * Do not use this function in new code.
+ * Subscription gating is now handled via isSubscriptionActive() in
+ * lib/auth/get-business-context.ts, scoped to business_subscriptions.
+ */
 export async function requireSubscription(
-  supabase: SupabaseClient,
-  user: { id: string; email?: string },
-) {
-  if (user.email === process.env.ADMIN_EMAIL) return
-
-  const { data: sub } = await supabase
-    .from('subscriptions')
-    .select('expires_at')
-    .eq('user_id', user.id)
-    .single()
-
-  if (!sub || new Date(sub.expires_at) < new Date()) {
-    redirect('/subscribe')
-  }
+  _supabase: unknown,
+  _user: unknown,
+): Promise<void> {
+  throw new Error(
+    'requireSubscription is deprecated. Use business subscription checks via getBusinessContext.'
+  )
 }
