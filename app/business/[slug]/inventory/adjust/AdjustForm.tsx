@@ -1,0 +1,196 @@
+'use client'
+
+import { useState } from 'react'
+import { useFormStatus } from 'react-dom'
+import { useParams } from 'next/navigation'
+import Link from 'next/link'
+import { Plus, Minus, Loader2, AlertCircle } from 'lucide-react'
+
+const REASONS = [
+  'Opening stock',
+  'Count correction',
+  'Found extra stock',
+  'Missing purchase history',
+  'Damaged goods',
+  'Expired goods',
+  'Theft / shrinkage',
+  'Other',
+]
+
+type Product = { id: string; name: string; sku: string | null }
+
+function SubmitButton({ direction }: { direction: 'in' | 'out' }) {
+  const { pending } = useFormStatus()
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors disabled:opacity-60 ${
+        direction === 'in'
+          ? 'bg-green-600 hover:bg-green-700 text-white'
+          : 'bg-red-600 hover:bg-red-700 text-white'
+      }`}
+    >
+      {pending ? (
+        <><Loader2 size={15} className="animate-spin" />Saving…</>
+      ) : direction === 'in' ? (
+        <><Plus size={15} />Add stock</>
+      ) : (
+        <><Minus size={15} />Remove stock</>
+      )}
+    </button>
+  )
+}
+
+type Props = {
+  products: Product[]
+  action: (formData: FormData) => Promise<void>
+  error?: string
+}
+
+export default function AdjustForm({ products, action, error }: Props) {
+  const params = useParams<{ slug: string }>()
+  const [direction, setDirection] = useState<'in' | 'out'>('in')
+
+  return (
+    <form action={action} className="space-y-5">
+      <input type="hidden" name="direction" value={direction} />
+
+      {error && (
+        <div className="flex items-start gap-2 rounded-xl bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 px-4 py-3 text-sm text-red-700 dark:text-red-300">
+          <AlertCircle size={15} className="flex-shrink-0 mt-0.5" />
+          {decodeURIComponent(error)}
+        </div>
+      )}
+
+      {/* Direction toggle */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          Adjustment type
+        </label>
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => setDirection('in')}
+            className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl border text-sm font-medium transition-all ${
+              direction === 'in'
+                ? 'bg-green-50 dark:bg-green-900/30 border-green-300 dark:border-green-700 text-green-700 dark:text-green-300'
+                : 'bg-white dark:bg-neutral-900 border-gray-200 dark:border-neutral-700 text-gray-500 dark:text-neutral-400 hover:border-gray-300 dark:hover:border-neutral-600'
+            }`}
+          >
+            <Plus size={15} />
+            Add stock
+          </button>
+          <button
+            type="button"
+            onClick={() => setDirection('out')}
+            className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl border text-sm font-medium transition-all ${
+              direction === 'out'
+                ? 'bg-red-50 dark:bg-red-900/30 border-red-300 dark:border-red-700 text-red-700 dark:text-red-300'
+                : 'bg-white dark:bg-neutral-900 border-gray-200 dark:border-neutral-700 text-gray-500 dark:text-neutral-400 hover:border-gray-300 dark:hover:border-neutral-600'
+            }`}
+          >
+            <Minus size={15} />
+            Remove stock
+          </button>
+        </div>
+      </div>
+
+      {/* Product */}
+      <div>
+        <label htmlFor="product_id" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+          Product <span className="text-red-500">*</span>
+        </label>
+        {products.length === 0 ? (
+          <p className="text-sm text-gray-400">
+            No active products.{' '}
+            <Link href={`/business/${params.slug}/products/new`} className="text-indigo-600 dark:text-indigo-400 hover:underline">
+              Add a product first.
+            </Link>
+          </p>
+        ) : (
+          <select
+            id="product_id"
+            name="product_id"
+            required
+            defaultValue=""
+            className="w-full px-3 py-2.5 rounded-xl border border-gray-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          >
+            <option value="" disabled>Select a product…</option>
+            {products.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}{p.sku ? ` (#${p.sku})` : ''}
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
+
+      {/* Quantity */}
+      <div>
+        <label htmlFor="quantity" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+          Quantity <span className="text-red-500">*</span>
+        </label>
+        <input
+          id="quantity"
+          name="quantity"
+          type="number"
+          min="1"
+          step="1"
+          required
+          placeholder="e.g. 10"
+          className="w-full px-3 py-2.5 rounded-xl border border-gray-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        />
+      </div>
+
+      {/* Reason */}
+      <div>
+        <label htmlFor="reason" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+          Reason <span className="text-red-500">*</span>
+        </label>
+        <select
+          id="reason"
+          name="reason"
+          required
+          className="w-full px-3 py-2.5 rounded-xl border border-gray-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        >
+          {REASONS.map((r) => (
+            <option key={r} value={r}>{r}</option>
+          ))}
+        </select>
+      </div>
+
+      {/* Notes */}
+      <div>
+        <label htmlFor="notes" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+          Additional notes{' '}
+          <span className="text-gray-400 dark:text-neutral-500 font-normal">(optional)</span>
+        </label>
+        <textarea
+          id="notes"
+          name="notes"
+          rows={2}
+          placeholder="Any additional context…"
+          className="w-full px-3 py-2.5 rounded-xl border border-gray-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+        />
+      </div>
+
+      {/* Info callout */}
+      <div className="flex items-start gap-2 rounded-xl bg-gray-50 dark:bg-neutral-800/60 border border-gray-200 dark:border-neutral-700 px-4 py-3 text-xs text-gray-500 dark:text-neutral-400">
+        <AlertCircle size={13} className="flex-shrink-0 mt-0.5" />
+        This creates an inventory adjustment entry and affects current stock.
+      </div>
+
+      {/* Actions */}
+      <div className="flex gap-3 pt-1">
+        <Link
+          href={`/business/${params.slug}/inventory`}
+          className="flex-1 flex items-center justify-center px-4 py-2.5 rounded-xl border border-gray-200 dark:border-neutral-700 text-sm font-medium text-gray-600 dark:text-neutral-300 hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors"
+        >
+          Cancel
+        </Link>
+        <SubmitButton direction={direction} />
+      </div>
+    </form>
+  )
+}

@@ -1,18 +1,21 @@
 import { getBusinessContext } from '@/lib/auth/get-business-context'
+import { canPerform } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
-import { Package, AlertCircle } from 'lucide-react'
+import { Package, AlertCircle, CheckCircle2, SlidersHorizontal } from 'lucide-react'
 
 type Props = {
   params: Promise<{ slug: string }>
-  searchParams: Promise<{ error?: string }>
+  searchParams: Promise<{ error?: string; success?: string }>
 }
 
 export default async function InventoryPage({ params, searchParams }: Props) {
   const { slug } = await params
-  const { error } = await searchParams
+  const { error, success } = await searchParams
   const ctx = await getBusinessContext(slug)
   const supabase = await createClient()
+
+  const canAdjust = canPerform(ctx.membership.role, 'adjust_inventory')
 
   // Join product_stock view with products to get names
   const { data: stockRows } = await supabase
@@ -32,7 +35,6 @@ export default async function InventoryPage({ params, searchParams }: Props) {
     .eq('is_active', true)
     .order('name')
 
-  // Build a complete stock map including products with no stock rows
   type StockEntry = {
     product_id: string
     name: string
@@ -43,7 +45,6 @@ export default async function InventoryPage({ params, searchParams }: Props) {
 
   const stockMap = new Map<string, StockEntry>()
 
-  // Seed from product_stock view
   for (const row of stockRows ?? []) {
     const product = Array.isArray(row.products) ? row.products[0] : row.products
     if (!product?.is_active) continue
@@ -59,7 +60,6 @@ export default async function InventoryPage({ params, searchParams }: Props) {
     })
   }
 
-  // Add active products with no stock record (stock = 0)
   for (const p of allProducts ?? []) {
     if (!stockMap.has(p.id)) {
       const cat = Array.isArray(p.product_categories)
@@ -78,12 +78,12 @@ export default async function InventoryPage({ params, searchParams }: Props) {
   const entries = Array.from(stockMap.values()).sort((a, b) => a.stock_quantity - b.stock_quantity)
 
   const outOfStock = entries.filter((e) => e.stock_quantity <= 0).length
-  const lowStock = entries.filter((e) => e.stock_quantity > 0 && e.stock_quantity <= 5).length
+  const lowStock   = entries.filter((e) => e.stock_quantity > 0 && e.stock_quantity <= 5).length
 
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
             <Package size={20} />
@@ -103,6 +103,16 @@ export default async function InventoryPage({ params, searchParams }: Props) {
             )}
           </p>
         </div>
+
+        {canAdjust && (
+          <Link
+            href={`/business/${slug}/inventory/adjust`}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors"
+          >
+            <SlidersHorizontal size={14} />
+            Adjust inventory
+          </Link>
+        )}
       </div>
 
       {error && (
@@ -112,20 +122,40 @@ export default async function InventoryPage({ params, searchParams }: Props) {
         </div>
       )}
 
+      {success && (
+        <div className="flex items-center gap-2 rounded-lg bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 px-4 py-3 text-sm text-green-700 dark:text-green-300">
+          <CheckCircle2 size={15} className="flex-shrink-0" />
+          {decodeURIComponent(success)}
+        </div>
+      )}
+
       <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl overflow-hidden">
         {entries.length === 0 ? (
           <div className="px-6 py-16 text-center">
             <Package size={32} className="mx-auto text-gray-300 dark:text-neutral-600 mb-3" />
             <p className="text-sm text-gray-500 dark:text-gray-400">No inventory data yet.</p>
             <p className="text-xs text-gray-400 dark:text-neutral-500 mt-1">
-              Stock levels are updated automatically when purchases are recorded.
+              Add stock via a purchase or use the adjust inventory button above.
             </p>
-            <Link
-              href={`/business/${slug}/purchases/new`}
-              className="mt-3 inline-flex items-center gap-1.5 text-sm text-indigo-600 dark:text-indigo-400 hover:underline"
-            >
-              Record a purchase
-            </Link>
+            <div className="mt-3 flex items-center justify-center gap-3 flex-wrap">
+              <Link
+                href={`/business/${slug}/purchases/new`}
+                className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline"
+              >
+                Record a purchase
+              </Link>
+              {canAdjust && (
+                <>
+                  <span className="text-gray-300 dark:text-neutral-600">·</span>
+                  <Link
+                    href={`/business/${slug}/inventory/adjust`}
+                    className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline"
+                  >
+                    Adjust inventory
+                  </Link>
+                </>
+              )}
+            </div>
           </div>
         ) : (
           <div className="overflow-x-auto">
