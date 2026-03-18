@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2, ShoppingCart } from 'lucide-react'
 import Link from 'next/link'
-import { createBrowserClient } from '@supabase/ssr'
+import { createClient } from '@/lib/supabase/client'
 import { getCart, type Cart } from '@/lib/cart/store'
 import { placeOrder } from '@/app/app/orders/actions'
 import CheckoutForm from './CheckoutForm'
@@ -37,10 +37,7 @@ export default function CartReader({ error }: Props) {
     }
     setCart(c)
 
-    const supabase = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
+    const supabase = createClient()
 
     async function fetchSettings() {
       // Fetch business currency
