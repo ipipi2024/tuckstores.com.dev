@@ -1,3 +1,4 @@
+import { cache } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import type { MembershipRole, MembershipStatus } from './permissions'
@@ -35,7 +36,7 @@ export type BusinessContext = {
  * Use this at the top of every business-scoped server component or action.
  * The slug is the URL segment from /business/[slug]/...
  */
-export async function getBusinessContext(slug: string): Promise<BusinessContext> {
+export const getBusinessContext = cache(async function _getBusinessContext(slug: string): Promise<BusinessContext> {
   const supabase = await createClient()
 
   const {
@@ -111,7 +112,7 @@ export async function getBusinessContext(slug: string): Promise<BusinessContext>
         }
       : null,
   }
-}
+})
 
 /**
  * Returns true if the business context has an active or trialing subscription
