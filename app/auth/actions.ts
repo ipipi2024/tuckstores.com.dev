@@ -45,6 +45,30 @@ export async function resendVerification(formData: FormData) {
   redirect(`/verify-email?email=${encodeURIComponent(email)}&resent=1`)
 }
 
+export async function forgotPassword(formData: FormData) {
+  const supabase = await createClient()
+  const email = formData.get('email') as string
+
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?next=/reset-password`,
+  })
+
+  if (error) redirect(`/forgot-password?error=${encodeURIComponent(error.message || JSON.stringify(error))}`)
+
+  redirect(`/forgot-password?sent=1`)
+}
+
+export async function resetPassword(formData: FormData) {
+  const supabase = await createClient()
+  const password = formData.get('password') as string
+
+  const { error } = await supabase.auth.updateUser({ password })
+
+  if (error) redirect(`/reset-password?error=${encodeURIComponent(error.message)}`)
+
+  redirect('/dashboard')
+}
+
 export async function signIn(formData: FormData) {
   const supabase = await createClient()
 

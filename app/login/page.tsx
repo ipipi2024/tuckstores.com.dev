@@ -44,6 +44,9 @@ export default async function LoginPage({
                 <label htmlFor="password" className="block text-sm font-medium">
                   Password
                 </label>
+                <Link href="/forgot-password" className="text-xs text-gray-500 dark:text-neutral-400 hover:text-black dark:hover:text-white transition-colors">
+                  Forgot password?
+                </Link>
               </div>
               <input
                 id="password"
