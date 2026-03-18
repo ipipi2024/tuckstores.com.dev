@@ -73,24 +73,29 @@ export async function addProduct(slug: string, formData: FormData) {
     formData.get('category_name') as string | null
   )
 
-  const { error } = await supabase.from('products').insert({
-    business_id: ctx.business.id,
-    name,
-    description: (formData.get('description') as string | null)?.trim() || null,
-    sku: (formData.get('sku') as string | null)?.trim() || null,
-    barcode: (formData.get('barcode') as string | null)?.trim() || null,
-    selling_price: parseDecimal(formData.get('selling_price')),
-    cost_price_default: parseDecimal(formData.get('cost_price_default')),
-    category_id: categoryId,
-    is_active: formData.get('is_active') !== 'false',
-  })
+  const { data: newProduct, error } = await supabase
+    .from('products')
+    .insert({
+      business_id: ctx.business.id,
+      name,
+      description: (formData.get('description') as string | null)?.trim() || null,
+      sku: (formData.get('sku') as string | null)?.trim() || null,
+      barcode: (formData.get('barcode') as string | null)?.trim() || null,
+      selling_price: parseDecimal(formData.get('selling_price')),
+      cost_price_default: parseDecimal(formData.get('cost_price_default')),
+      category_id: categoryId,
+      is_active: formData.get('is_active') !== 'false',
+    })
+    .select('id')
+    .single()
 
   if (error) {
     redirect(`/business/${slug}/products/new?error=${encodeURIComponent(error.message)}`)
   }
 
   revalidatePath(productsPath(slug))
-  redirect(productsPath(slug))
+  // Redirect to edit page so images can be added immediately
+  redirect(`${productsPath(slug)}/${newProduct.id}`)
 }
 
 export async function updateProduct(slug: string, id: string, formData: FormData) {

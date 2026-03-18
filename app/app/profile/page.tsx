@@ -1,9 +1,10 @@
 import { getAuthUser } from '@/lib/auth/get-user'
 import { createClient } from '@/lib/supabase/server'
-import { AlertCircle, CheckCircle2, User, LogOut } from 'lucide-react'
+import { AlertCircle, CheckCircle2, LogOut } from 'lucide-react'
 import { updateProfile } from './actions'
 import { signOut } from '@/app/auth/actions'
 import SubmitButton from '@/components/ui/SubmitButton'
+import AvatarEditor from '@/components/AvatarEditor'
 
 type Props = {
   searchParams: Promise<{ error?: string; success?: string }>
@@ -17,7 +18,7 @@ export default async function ProfilePage({ searchParams }: Props) {
   const supabase = await createClient()
   const { data: profile } = await supabase
     .from('users')
-    .select('full_name, phone, email')
+    .select('full_name, phone, email, avatar_url, avatar_path')
     .eq('id', user.id)
     .single()
 
@@ -28,11 +29,13 @@ export default async function ProfilePage({ searchParams }: Props) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="w-12 h-12 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
-          <User size={22} className="text-indigo-600 dark:text-indigo-400" />
-        </div>
-        <div>
+      <div className="flex flex-col items-center gap-2 py-2">
+        <AvatarEditor
+          userId={user.id}
+          initialAvatarUrl={profile?.avatar_url ?? null}
+          displayName={profile?.full_name ?? null}
+        />
+        <div className="text-center">
           <h2 className="text-base font-bold text-gray-900 dark:text-white">
             {profile?.full_name ?? 'My Profile'}
           </h2>

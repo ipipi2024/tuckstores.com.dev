@@ -6,6 +6,7 @@ import { Settings2, AlertCircle, CheckCircle2 } from 'lucide-react'
 import { updateBusinessSettings, updateDeliverySettings } from './actions'
 import SubmitButton from '@/components/ui/SubmitButton'
 import { isAtLeastRole } from '@/lib/auth/permissions'
+import BrandingEditor from '@/components/BrandingEditor'
 
 type Props = {
   params:       Promise<{ slug: string }>
@@ -67,7 +68,7 @@ export default async function SettingsPage({ params, searchParams }: Props) {
   const supabase = await createClient()
   const { data: biz } = await supabase
     .from('businesses')
-    .select('id, name, slug, description, phone, email, currency_code, country_code, timezone')
+    .select('id, name, slug, description, phone, email, currency_code, country_code, timezone, logo_url, logo_path, cover_image_url, cover_image_path, catchline')
     .eq('id', ctx.business.id)
     .single()
 
@@ -250,6 +251,27 @@ export default async function SettingsPage({ params, searchParams }: Props) {
           </SubmitButton>
         </div>
       </form>
+
+      {/* Branding */}
+      <div className="space-y-4">
+        <div>
+          <h2 className="text-base font-semibold text-gray-900 dark:text-white">Branding</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+            Logo, cover photo, and catchline shown on your public store page.
+          </p>
+        </div>
+        <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl p-5">
+          <BrandingEditor
+            slug={slug}
+            businessId={biz.id}
+            initialLogoUrl={biz.logo_url ?? null}
+            initialLogoPath={biz.logo_path ?? null}
+            initialCoverUrl={biz.cover_image_url ?? null}
+            initialCoverPath={biz.cover_image_path ?? null}
+            initialCatchline={biz.catchline ?? null}
+          />
+        </div>
+      </div>
 
       {/* Delivery & Fulfillment — admin+ only */}
       {isAdmin && (

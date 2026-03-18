@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { sendCustomerMessage } from '../actions'
-import AutoRefresh from '../AutoRefresh'
+import RealtimeMessages from '../RealtimeMessages'
 import MessageSendForm from '@/components/ui/MessageSendForm'
 
 type Props = { params: Promise<{ id: string }> }
@@ -41,26 +41,35 @@ export default async function CustomerThreadPage({ params }: Props) {
 
   if (!conv) redirect('/app/messages')
 
-  // Regular client — conversation_messages RLS: via conversation access
-  // Limit to most recent 150 messages. TODO: add older-message paging for long threads.
-  const { data: msgs } = await supabase
-    .from('conversation_messages')
-    .select('id, body, sender_type, sender_user_id, created_at')
-    .eq('conversation_id', id)
-    .order('created_at', { ascending: false })
-    .limit(150)
+  // Admin client — for mark-as-read and business name (businesses RLS blocks non-members)
+  const admin = createAdminClient()
+
+  const [, { data: msgs }, { data: biz }] = await Promise.all([
+    // Mark conversation as read — customer RLS doesn't allow update, so use admin client
+    admin
+      .from('conversations')
+      .update({ customer_last_read_at: new Date().toISOString() })
+      .eq('id', id)
+      .eq('customer_user_id', user.id),
+
+    // Regular client — conversation_messages RLS: via conversation access
+    // Limit to most recent 150 messages. TODO: add older-message paging for long threads.
+    supabase
+      .from('conversation_messages')
+      .select('id, body, sender_type, sender_user_id, created_at')
+      .eq('conversation_id', id)
+      .order('created_at', { ascending: false })
+      .limit(150),
+
+    admin
+      .from('businesses')
+      .select('name')
+      .eq('id', conv.business_id)
+      .single(),
+  ])
 
   // Reverse so the thread renders chronologically (oldest first)
   const messages = (msgs ?? []).reverse()
-
-
-  // Admin client for business name — businesses RLS blocks non-members
-  const admin = createAdminClient()
-  const { data: biz } = await admin
-    .from('businesses')
-    .select('name')
-    .eq('id', conv.business_id)
-    .single()
 
   const bizName = biz?.name ?? 'Business'
 
@@ -80,7 +89,7 @@ export default async function CustomerThreadPage({ params }: Props) {
 
   return (
     <div className="flex flex-col min-h-[calc(100dvh-8rem)]">
-      <AutoRefresh />
+      <RealtimeMessages conversationId={id} />
 
       {/* Header */}
       <div className="flex items-center gap-3 pb-4 mb-1 border-b border-gray-100 dark:border-neutral-800">

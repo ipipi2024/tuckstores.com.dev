@@ -21,7 +21,7 @@ export default async function PublicBusinessPage({ params }: Props) {
 
   const { data: biz } = await supabase
     .from('businesses')
-    .select('id, name, slug, description, phone, email, currency_code, country_code, timezone')
+    .select('id, name, slug, description, phone, email, currency_code, country_code, timezone, logo_url, cover_image_url, catchline')
     .eq('slug', slug)
     .maybeSingle()
 
@@ -45,14 +45,19 @@ export default async function PublicBusinessPage({ params }: Props) {
 
   const categories = catsData ?? []
 
-  // Active products — public fields only
+  // Active products with their first image
   const { data: prodsData } = await supabase
     .from('products')
-    .select('id, name, description, sku, selling_price, category_id')
+    .select('id, name, description, sku, selling_price, category_id, product_images ( url, position )')
     .eq('business_id', biz.id)
+    .eq('is_active', true)
     .order('name', { ascending: true })
 
-  const products = prodsData ?? []
+  const products = (prodsData ?? []).map((p) => {
+    const imgs = Array.isArray(p.product_images) ? p.product_images : []
+    imgs.sort((a, b) => a.position - b.position)
+    return { ...p, firstImageUrl: imgs[0]?.url ?? null }
+  })
 
   // Build category map for display
   const catMap: Record<string, string> = {}
@@ -94,13 +99,38 @@ export default async function PublicBusinessPage({ params }: Props) {
           Businesses
         </Link>
 
+        {/* Cover photo */}
+        {biz.cover_image_url && (
+          <div className="w-full aspect-[3/1] rounded-2xl overflow-hidden bg-gray-100 dark:bg-neutral-800">
+            <img
+              src={biz.cover_image_url}
+              alt={`${biz.name} cover`}
+              className="w-full h-full object-cover"
+            />
+          </div>
+        )}
+
         {/* Business header */}
         <div className="flex items-start gap-4">
-          <div className="shrink-0 w-14 h-14 rounded-2xl bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-xl font-bold text-indigo-600 dark:text-indigo-300">
-            {biz.name.charAt(0).toUpperCase()}
-          </div>
+          {/* Logo or letter avatar */}
+          {biz.logo_url ? (
+            <img
+              src={biz.logo_url}
+              alt={`${biz.name} logo`}
+              className="shrink-0 w-14 h-14 rounded-2xl object-cover bg-gray-100 dark:bg-neutral-800"
+            />
+          ) : (
+            <div className="shrink-0 w-14 h-14 rounded-2xl bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-xl font-bold text-indigo-600 dark:text-indigo-300">
+              {biz.name.charAt(0).toUpperCase()}
+            </div>
+          )}
           <div className="min-w-0">
             <h1 className="text-xl font-bold text-gray-900 dark:text-white">{biz.name}</h1>
+            {biz.catchline && (
+              <p className="text-sm font-medium text-indigo-600 dark:text-indigo-400 mt-0.5">
+                {biz.catchline}
+              </p>
+            )}
             {biz.description && (
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{biz.description}</p>
             )}
@@ -167,6 +197,20 @@ export default async function PublicBusinessPage({ params }: Props) {
                 <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl divide-y divide-gray-100 dark:divide-neutral-800 overflow-hidden">
                   {catProds.map((p) => (
                     <div key={p.id} className="flex items-center gap-3 px-4 py-3.5">
+                      {/* Product thumbnail */}
+                      <Link href={`/products/${p.id}`} className="shrink-0">
+                        {p.firstImageUrl ? (
+                          <img
+                            src={p.firstImageUrl}
+                            alt={p.name}
+                            className="w-12 h-12 rounded-lg object-cover bg-gray-100 dark:bg-neutral-800"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded-lg bg-gray-100 dark:bg-neutral-800 flex items-center justify-center">
+                            <Tag size={16} className="text-gray-300 dark:text-neutral-600" />
+                          </div>
+                        )}
+                      </Link>
                       <Link href={`/products/${p.id}`} className="flex-1 min-w-0 hover:opacity-80 transition-opacity">
                         <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{p.name}</p>
                         {p.description && (

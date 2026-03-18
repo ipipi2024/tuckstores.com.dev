@@ -26,3 +26,18 @@ export async function updateProfile(formData: FormData) {
   revalidatePath('/app')
   redirect('/app/profile?success=1')
 }
+
+export async function saveAvatar(
+  url: string | null,
+  path: string | null
+): Promise<void> {
+  const user = await getAuthUser()
+  const supabase = await createClient()
+
+  await supabase
+    .from('users')
+    .update({ avatar_url: url, avatar_path: path })
+    .eq('id', user.id)
+
+  revalidatePath('/app/profile')
+}

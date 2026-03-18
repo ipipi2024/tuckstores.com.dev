@@ -8,6 +8,7 @@ import { ArrowLeft, AlertCircle } from 'lucide-react'
 import DeleteProductButton from './DeleteProductButton'
 import SubmitButton from '@/components/ui/SubmitButton'
 import CategoryPicker from '../new/CategoryPicker'
+import ProductImagesEditor from '@/components/ProductImagesEditor'
 
 type Props = {
   params: Promise<{ slug: string; id: string }>
@@ -27,7 +28,7 @@ export default async function EditProductPage({ params, searchParams }: Props) {
 
   const { data: product } = await supabase
     .from('products')
-    .select('id, name, description, sku, barcode, selling_price, cost_price_default, is_active, category_id')
+    .select('id, name, description, sku, barcode, selling_price, cost_price_default, is_active, category_id, product_images ( id, url, storage_path, position )')
     .eq('id', id)
     .eq('business_id', ctx.business.id)
     .maybeSingle()
@@ -149,6 +150,22 @@ export default async function EditProductPage({ params, searchParams }: Props) {
           </Link>
         </div>
       </form>
+
+      {/* Product images */}
+      <div className="border-t border-gray-200 dark:border-neutral-800 pt-6">
+        <ProductImagesEditor
+          slug={slug}
+          productId={product.id}
+          initialImages={
+            (Array.isArray(product.product_images) ? product.product_images : []) as {
+              id: string
+              url: string
+              storage_path: string
+              position: number
+            }[]
+          }
+        />
+      </div>
 
       <div className="border-t border-gray-200 dark:border-neutral-800 pt-6">
         <h2 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Danger zone</h2>

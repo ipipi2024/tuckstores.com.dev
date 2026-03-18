@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getBusinessContext } from '@/lib/auth/get-business-context'
 import { canPerform, isAtLeastRole } from '@/lib/auth/permissions'
+import { createClient } from '@/lib/supabase/server'
 
 export async function updateBusinessSettings(slug: string, formData: FormData) {
   const ctx = await getBusinessContext(slug)
@@ -64,6 +65,59 @@ export async function updateBusinessSettings(slug: string, formData: FormData) {
   }
 
   revalidatePath(`/business/${slug}/settings`)
+  redirect(`/business/${slug}/settings?success=1`)
+}
+
+export async function updateBusinessBranding(slug: string, formData: FormData) {
+  const ctx = await getBusinessContext(slug)
+
+  if (!canPerform(ctx.membership.role, 'manage_settings')) {
+    redirect(`/business/${slug}/settings?error=Insufficient+permissions`)
+  }
+
+  const logoUrl         = (formData.get('logo_url')         as string | null) || null
+  const logoPath        = (formData.get('logo_path')        as string | null) || null
+  const coverImageUrl   = (formData.get('cover_image_url')  as string | null) || null
+  const coverImagePath  = (formData.get('cover_image_path') as string | null) || null
+  const catchline       = (formData.get('catchline')        as string | null)?.trim() || null
+
+  // Fetch existing paths so we can delete orphaned storage files when images are removed
+  const supabase = await createClient()
+  const { data: existing } = await supabase
+    .from('businesses')
+    .select('logo_path, cover_image_path')
+    .eq('id', ctx.business.id)
+    .single()
+
+  const admin = createAdminClient()
+
+  // If logo was removed (existing path present, new path absent) — delete from storage
+  if (existing?.logo_path && !logoPath && existing.logo_path !== logoPath) {
+    await admin.storage.from('business-assets').remove([existing.logo_path])
+  }
+
+  // If cover was removed — delete from storage
+  if (existing?.cover_image_path && !coverImagePath && existing.cover_image_path !== coverImagePath) {
+    await admin.storage.from('business-assets').remove([existing.cover_image_path])
+  }
+
+  const { error } = await admin
+    .from('businesses')
+    .update({
+      logo_url:         logoUrl,
+      logo_path:        logoPath,
+      cover_image_url:  coverImageUrl,
+      cover_image_path: coverImagePath,
+      catchline,
+    })
+    .eq('id', ctx.business.id)
+
+  if (error) {
+    redirect(`/business/${slug}/settings?error=${encodeURIComponent(error.message)}`)
+  }
+
+  revalidatePath(`/business/${slug}/settings`)
+  revalidatePath(`/businesses/${slug}`)
   redirect(`/business/${slug}/settings?success=1`)
 }
 
