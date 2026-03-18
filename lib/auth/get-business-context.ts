@@ -87,7 +87,8 @@ export const getBusinessContext = cache(async function _getBusinessContext(slug:
   }
 
   const membership = data.business_memberships[0]
-  const subscription = data.business_subscriptions?.[0] ?? null
+  const rawSub = data.business_subscriptions
+  const subscription = Array.isArray(rawSub) ? (rawSub[0] ?? null) : (rawSub ?? null)
 
   return {
     business: {
