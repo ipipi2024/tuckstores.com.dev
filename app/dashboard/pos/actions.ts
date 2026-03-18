@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { requireSubscription } from '@/lib/require-subscription'
 
 type SaleItem = {
   product_id: string
@@ -17,6 +18,7 @@ export async function completeSale(
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+  await requireSubscription(supabase, user)
 
   if (!items.length) return { error: 'Cart is empty' }
 
@@ -58,6 +60,7 @@ export async function linkSaleToCustomer(
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+  await requireSubscription(supabase, user)
 
   const { error } = await supabase
     .from('sales')
@@ -77,6 +80,7 @@ export async function registerWalkInCustomer(
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+  await requireSubscription(supabase, user)
 
   const { error } = await supabase.from('customers').insert({
     user_id: user.id,

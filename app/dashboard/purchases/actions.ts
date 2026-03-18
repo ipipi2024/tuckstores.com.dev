@@ -3,11 +3,13 @@
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { requireSubscription } from '@/lib/require-subscription'
 
 export async function createPurchase(formData: FormData) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+  await requireSubscription(supabase, user)
 
   const supplier_id = formData.get('supplier_id') as string || null
   const purchase_date = formData.get('purchase_date') as string
@@ -53,6 +55,7 @@ export async function submitPurchase(
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+  await requireSubscription(supabase, user)
 
   if (!items.length) return { error: 'Add at least one item' }
 
@@ -77,6 +80,7 @@ export async function quickAddSupplier(
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+  await requireSubscription(supabase, user)
 
   const { data, error } = await supabase
     .from('suppliers')

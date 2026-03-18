@@ -3,11 +3,13 @@
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { requireSubscription } from '@/lib/require-subscription'
 
 export async function createSale(formData: FormData) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+  await requireSubscription(supabase, user)
 
   const notes = formData.get('notes') as string
   const customer_id = formData.get('customer_id') as string || null

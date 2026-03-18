@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { requireSubscription } from '@/lib/require-subscription'
 
 async function resolveCategory(supabase: Awaited<ReturnType<typeof createClient>>, userId: string, categoryName: string | null) {
   if (!categoryName?.trim()) return null
@@ -34,6 +35,7 @@ export async function addProduct(formData: FormData) {
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) redirect('/login')
+  await requireSubscription(supabase, user)
 
   const sellingPriceRaw = formData.get('selling_price') as string
   const selling_price = sellingPriceRaw ? parseFloat(sellingPriceRaw) : null
@@ -58,6 +60,7 @@ export async function updateProduct(id: string, formData: FormData) {
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) redirect('/login')
+  await requireSubscription(supabase, user)
 
   const sellingPriceRaw = formData.get('selling_price') as string
   const selling_price = sellingPriceRaw ? parseFloat(sellingPriceRaw) : null
@@ -78,6 +81,9 @@ export async function updateProduct(id: string, formData: FormData) {
 
 export async function deleteProduct(id: string) {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+  await requireSubscription(supabase, user)
   await supabase.from('products').delete().eq('id', id)
   revalidatePath('/dashboard/products')
 }

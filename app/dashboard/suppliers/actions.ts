@@ -3,11 +3,13 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { requireSubscription } from '@/lib/require-subscription'
 
 export async function addSupplier(formData: FormData) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+  await requireSubscription(supabase, user)
 
   const { error } = await supabase.from('suppliers').insert({
     user_id: user.id,
@@ -28,6 +30,7 @@ export async function createQuickSupplier(formData: FormData) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+  await requireSubscription(supabase, user)
 
   const name = (formData.get('name') as string).trim()
   if (!name) redirect('/dashboard/purchases/new?error=Supplier+name+is+required')
@@ -46,6 +49,9 @@ export async function createQuickSupplier(formData: FormData) {
 
 export async function deleteSupplier(id: string) {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+  await requireSubscription(supabase, user)
   await supabase.from('suppliers').delete().eq('id', id)
   revalidatePath('/dashboard/suppliers')
 }
