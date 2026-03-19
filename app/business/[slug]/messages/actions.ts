@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getBusinessContext, isSubscriptionActive } from '@/lib/auth/get-business-context'
+import { dispatchNotification } from '@/lib/notifications'
 
 /**
  * Send a text message as a business member.
@@ -31,7 +32,7 @@ export async function sendBusinessMessage(
   // Verify conversation belongs to this business (RLS: is_business_member(business_id))
   const { data: conv } = await supabase
     .from('conversations')
-    .select('id')
+    .select('id, customer_user_id')
     .eq('id', conversationId)
     .eq('business_id', ctx.business.id)
     .maybeSingle()
@@ -46,6 +47,21 @@ export async function sendBusinessMessage(
       sender_type:     'business_member',
       body,
     })
+
+  // Notify the customer — fire-and-forget, never blocks the redirect
+  if (conv.customer_user_id) {
+    dispatchNotification({
+      userId: conv.customer_user_id,
+      type:   'new_message',
+      title:  `New message from ${ctx.business.name}`,
+      body:   body.length > 100 ? body.slice(0, 97) + '…' : body,
+      data: {
+        conversation_id: conversationId,
+        business_id:     ctx.business.id,
+        url:             `/app/messages/${conversationId}`,
+      },
+    }).catch(() => {})
+  }
 
   redirect(threadPath)
 }

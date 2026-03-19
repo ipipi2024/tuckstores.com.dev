@@ -15,6 +15,8 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "TuckStores",
   description: "Point of sale, inventory, and business management for retail stores.",
+  manifest: "/manifest.json",
+  appleWebApp: { capable: true, statusBarStyle: "default" },
 };
 
 export default function RootLayout({

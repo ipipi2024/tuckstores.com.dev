@@ -1,5 +1,8 @@
 import { getBusinessContext, isSubscriptionActive } from '@/lib/auth/get-business-context'
+import { getAuthUser } from '@/lib/auth/get-user'
+import { createAdminClient } from '@/lib/supabase/admin'
 import BusinessNav from '@/components/BusinessNav'
+import { NotificationProvider } from '@/components/NotificationProvider'
 
 type Props = {
   children: React.ReactNode
@@ -10,7 +13,13 @@ export default async function BusinessLayout({ children, params }: Props) {
   const { slug } = await params
 
   // Validates auth + active membership. Redirects to /login or /business/select on failure.
-  const ctx = await getBusinessContext(slug)
+  const [ctx, user] = await Promise.all([getBusinessContext(slug), getAuthUser()])
+  const admin = createAdminClient()
+  const { count: unreadNotifications } = await admin
+    .from('notifications')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+    .is('read_at', null)
 
   // Subscription status banner
   let banner: { message: string; variant: 'warning' | 'error' } | null = null
@@ -54,6 +63,7 @@ export default async function BusinessLayout({ children, params }: Props) {
   }
 
   return (
+    <NotificationProvider userId={user.id} initialUnreadCount={unreadNotifications ?? 0}>
     <div className="min-h-screen bg-gray-50 dark:bg-neutral-950">
       <BusinessNav
         slug={slug}
@@ -79,5 +89,6 @@ export default async function BusinessLayout({ children, params }: Props) {
         </div>
       </main>
     </div>
+    </NotificationProvider>
   )
 }

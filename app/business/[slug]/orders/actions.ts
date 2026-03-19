@@ -6,6 +6,7 @@ import { canPerform } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
+import { dispatchNotification } from '@/lib/notifications'
 
 // Valid status transitions for business staff
 const TRANSITIONS: Record<string, string[]> = {
@@ -168,6 +169,28 @@ export async function updateOrderStatus(
         p_completed_sale_increment:     1,
       })
     }
+  }
+
+  // Notify the customer on meaningful status transitions — fire-and-forget
+  const STATUS_TITLES: Record<string, string> = {
+    accepted:         'Your order has been accepted',
+    rejected:         'Your order has been declined',
+    ready:            'Your order is ready',
+    out_for_delivery: 'Your order is out for delivery',
+  }
+  const notifyTitle = STATUS_TITLES[newStatus]
+  if (notifyTitle && order.customer_user_id) {
+    dispatchNotification({
+      userId: order.customer_user_id,
+      type:   'order_status_changed',
+      title:  notifyTitle,
+      body:   `Order ${order.order_number}`,
+      data: {
+        order_id:    orderId,
+        business_id: ctx.business.id,
+        url:         `/app/orders/${orderId}`,
+      },
+    }).catch(() => {})
   }
 
   redirect(`/business/${slug}/orders/${orderId}?success=1`)

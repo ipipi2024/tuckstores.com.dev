@@ -3,6 +3,7 @@
 import { getAuthUser } from '@/lib/auth/get-user'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { dispatchNotificationToBusinessMembers } from '@/lib/notifications'
 
 /**
  * Place a new order.
@@ -42,6 +43,18 @@ export async function placeOrder(formData: FormData): Promise<void> {
   if (error) {
     redirect('/app/checkout?error=' + encodeURIComponent(error.message))
   }
+
+  // Notify all active business members of the new order — fire-and-forget
+  dispatchNotificationToBusinessMembers(businessId, {
+    type:  'order_placed',
+    title: 'New order received',
+    body:  'A customer just placed an order.',
+    data: {
+      order_id:    orderId as string,
+      business_id: businessId,
+      url:         `/business/{slug}/orders/${orderId}`,
+    },
+  }).catch(() => {})
 
   redirect(`/app/orders/${orderId}?placed=1`)
 }

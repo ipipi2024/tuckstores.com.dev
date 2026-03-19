@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getAuthUser } from '@/lib/auth/get-user'
+import { dispatchNotificationToBusinessMembers } from '@/lib/notifications'
 
 /**
  * Find an existing conversation between this customer and the given business,
@@ -65,7 +66,7 @@ export async function sendCustomerMessage(conversationId: string, formData: Form
   // Verify the conversation belongs to this customer (RLS enforces this)
   const { data: conv } = await supabase
     .from('conversations')
-    .select('id')
+    .select('id, business_id')
     .eq('id', conversationId)
     .eq('customer_user_id', user.id)
     .maybeSingle()
@@ -80,6 +81,18 @@ export async function sendCustomerMessage(conversationId: string, formData: Form
       sender_type:     'customer',
       body,
     })
+
+  // Notify all active business members — fire-and-forget
+  dispatchNotificationToBusinessMembers(conv.business_id, {
+    type:  'new_message',
+    title: 'New message from a customer',
+    body:  body.length > 100 ? body.slice(0, 97) + '…' : body,
+    data: {
+      conversation_id: conversationId,
+      business_id:     conv.business_id,
+      url:             `/business/{slug}/messages/${conversationId}`,
+    },
+  }).catch(() => {})
 
   redirect(`/app/messages/${conversationId}`)
 }
