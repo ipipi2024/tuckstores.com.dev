@@ -95,6 +95,7 @@ export default async function NewBusinessPage({
               <option value="INR">INR — Indian Rupee</option>
               <option value="CAD">CAD — Canadian Dollar</option>
               <option value="AUD">AUD — Australian Dollar</option>
+              <option value="PGK">PGK — Papua New Guinea Kina</option>
             </select>
           </div>
 

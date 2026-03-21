@@ -48,6 +48,7 @@ const CURRENCIES = [
   { code: 'INR', label: 'INR — Indian Rupee' },
   { code: 'AED', label: 'AED — UAE Dirham' },
   { code: 'AUD', label: 'AUD — Australian Dollar' },
+  { code: 'PGK', label: 'PGK — Papua New Guinea Kina' },
   { code: 'CAD', label: 'CAD — Canadian Dollar' },
   { code: 'SGD', label: 'SGD — Singapore Dollar' },
   { code: 'BRL', label: 'BRL — Brazilian Real' },
