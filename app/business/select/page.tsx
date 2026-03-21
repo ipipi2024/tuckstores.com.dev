@@ -1,4 +1,3 @@
-import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { getAuthUser } from '@/lib/auth/get-user'
 import { getUserMemberships } from '@/lib/auth/get-business-context'
@@ -9,11 +8,6 @@ export default async function BusinessSelectPage() {
   await getAuthUser()
 
   const memberships = await getUserMemberships()
-
-  // Auto-redirect if exactly one active business
-  if (memberships.length === 1) {
-    redirect(`/business/${memberships[0].businesses.slug}/dashboard`)
-  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex flex-col items-center justify-center p-4">
@@ -26,7 +20,7 @@ export default async function BusinessSelectPage() {
           <p className="text-sm text-gray-500 dark:text-gray-400">
             {memberships.length === 0
               ? 'Create a business to start selling, or browse as a customer.'
-              : 'Choose which business to manage.'}
+              : 'Choose a business to manage or create a new one.'}
           </p>
         </div>
 
