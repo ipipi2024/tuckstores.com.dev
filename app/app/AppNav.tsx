@@ -3,13 +3,15 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
-import { Home, ShoppingBag, MessageSquare, Store, User, Megaphone } from 'lucide-react'
+import { Home, ShoppingBag, MessageSquare, Store, User, Megaphone, Bell } from 'lucide-react'
+import { useNotifications } from '@/components/NotificationProvider'
 
 const NAV = [
   { href: '/app',                 label: 'Home',     icon: Home,          exact: true,  badge: null },
   { href: '/businesses',          label: 'Stores',   icon: Store,         exact: false, badge: null },
   { href: '/app/messages',        label: 'Messages', icon: MessageSquare, exact: false, badge: 'messages' as const },
   { href: '/app/announcements',   label: 'Updates',  icon: Megaphone,     exact: false, badge: null },
+  { href: '/app/notifications',   label: 'Alerts',   icon: Bell,          exact: false, badge: 'notifications' as const },
   { href: '/app/orders',          label: 'Orders',   icon: ShoppingBag,   exact: false, badge: 'orders' as const },
   { href: '/app/profile',         label: 'Profile',  icon: User,          exact: false, badge: null },
 ]
@@ -24,19 +26,25 @@ export default function AppNav({
   messagesBadge?: number
 }) {
   const pathname = usePathname()
-  const [counts, setCounts] = useState({ orders: ordersBadge, messages: messagesBadge })
+  const { unreadCount: notificationsCount } = useNotifications()
+  const [counts, setCounts] = useState({ orders: ordersBadge, messages: messagesBadge, notifications: notificationsCount })
 
   // Keep counts in sync if server re-renders with fresh values (e.g. after navigation)
   useEffect(() => {
-    setCounts({ orders: ordersBadge, messages: messagesBadge })
+    setCounts((c) => ({ ...c, orders: ordersBadge, messages: messagesBadge }))
   }, [ordersBadge, messagesBadge])
+
+  // Sync realtime notification count from NotificationProvider context
+  useEffect(() => {
+    setCounts((c) => ({ ...c, notifications: notificationsCount }))
+  }, [notificationsCount])
 
   const refresh = useCallback(async () => {
     try {
       const res = await fetch('/api/app/badge-counts')
       if (!res.ok) return
       const { activeOrders, unreadMessages } = await res.json()
-      setCounts({ orders: activeOrders, messages: unreadMessages })
+      setCounts((c) => ({ ...c, orders: activeOrders, messages: unreadMessages }))
     } catch {
       // ignore network errors
     }

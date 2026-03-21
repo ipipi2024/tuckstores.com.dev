@@ -4,7 +4,6 @@ import AppNav from './AppNav'
 import Link from 'next/link'
 import { Briefcase } from 'lucide-react'
 import { NotificationProvider } from '@/components/NotificationProvider'
-import NotificationBell from '@/components/NotificationBell'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await getAuthUser()
@@ -39,16 +38,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <span className="text-base font-bold text-gray-900 dark:text-white tracking-tight">
             TuckStores
           </span>
-          <div className="flex items-center gap-2">
-            <NotificationBell notificationsPath="/app/notifications" />
-            <Link
-              href="/business/select"
-              className="flex items-center gap-1.5 text-xs font-medium text-gray-500 dark:text-neutral-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
-            >
-              <Briefcase size={13} strokeWidth={1.75} />
-              Business Dashboard
-            </Link>
-          </div>
+          <Link
+            href="/business/select"
+            className="flex items-center gap-1.5 text-xs font-medium text-gray-500 dark:text-neutral-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+          >
+            <Briefcase size={13} strokeWidth={1.75} />
+            Business Dashboard
+          </Link>
         </header>
         <main className="max-w-lg mx-auto px-4 py-5">
           {children}
