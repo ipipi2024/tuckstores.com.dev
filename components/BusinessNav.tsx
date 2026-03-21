@@ -120,7 +120,7 @@ export default function BusinessNav({ slug, businessName, role }: Props) {
     <div className="px-4 py-4 border-t dark:border-neutral-800 flex items-center justify-between">
       <div className="flex items-center gap-2">
         <ThemeToggle />
-        <NotificationBell notificationsPath="/app/notifications" />
+        <NotificationBell notificationsPath={`/business/${slug}/notifications`} />
       </div>
       <form action={signOut}>
         <SubmitButton pendingText="…" className="text-xs text-gray-400 dark:text-neutral-500 hover:text-black dark:hover:text-white transition-colors disabled:opacity-50">
@@ -209,7 +209,7 @@ export default function BusinessNav({ slug, businessName, role }: Props) {
           {businessName}
         </span>
         <div className="flex items-center gap-1">
-          <NotificationBell notificationsPath="/app/notifications" />
+          <NotificationBell notificationsPath={`/business/${slug}/notifications`} />
           <ThemeToggle />
         </div>
       </header>
