@@ -88,18 +88,6 @@ export default function POSClient({ products, currencyCode, completeSale, custom
     return () => window.removeEventListener('focus', onFocus)
   }, [router])
 
-  // Close customer dropdown on outside click
-  useEffect(() => {
-    if (!showCustomerDropdown) return
-    function handleOutside(e: MouseEvent) {
-      if (customerDropdownRef.current && !customerDropdownRef.current.contains(e.target as Node)) {
-        setShowCustomerDropdown(false)
-      }
-    }
-    document.addEventListener('mousedown', handleOutside)
-    return () => document.removeEventListener('mousedown', handleOutside)
-  }, [showCustomerDropdown])
-
   // ── Cart state ─────────────────────────────────────────────────────────────
 
   const [query, setQuery] = useState('')
@@ -122,6 +110,18 @@ export default function POSClient({ products, currencyCode, completeSale, custom
   const [customerFilter, setCustomerFilter] = useState('')
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false)
   const customerDropdownRef = useRef<HTMLDivElement>(null)
+
+  // Close customer dropdown on outside click
+  useEffect(() => {
+    if (!showCustomerDropdown) return
+    function handleOutside(e: MouseEvent) {
+      if (customerDropdownRef.current && !customerDropdownRef.current.contains(e.target as Node)) {
+        setShowCustomerDropdown(false)
+      }
+    }
+    document.addEventListener('mousedown', handleOutside)
+    return () => document.removeEventListener('mousedown', handleOutside)
+  }, [showCustomerDropdown])
 
   // ── Derived ────────────────────────────────────────────────────────────────
 
