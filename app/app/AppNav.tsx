@@ -3,14 +3,15 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
-import { Home, ShoppingBag, MessageSquare, Store, User } from 'lucide-react'
+import { Home, ShoppingBag, MessageSquare, Store, User, Megaphone } from 'lucide-react'
 
 const NAV = [
-  { href: '/app',          label: 'Home',     icon: Home,          exact: true,  badge: null },
-  { href: '/businesses',   label: 'Stores',   icon: Store,         exact: false, badge: null },
-  { href: '/app/messages', label: 'Messages', icon: MessageSquare, exact: false, badge: 'messages' as const },
-  { href: '/app/orders',   label: 'Orders',   icon: ShoppingBag,   exact: false, badge: 'orders' as const },
-  { href: '/app/profile',  label: 'Profile',  icon: User,          exact: false, badge: null },
+  { href: '/app',                 label: 'Home',     icon: Home,          exact: true,  badge: null },
+  { href: '/businesses',          label: 'Stores',   icon: Store,         exact: false, badge: null },
+  { href: '/app/messages',        label: 'Messages', icon: MessageSquare, exact: false, badge: 'messages' as const },
+  { href: '/app/announcements',   label: 'Updates',  icon: Megaphone,     exact: false, badge: null },
+  { href: '/app/orders',          label: 'Orders',   icon: ShoppingBag,   exact: false, badge: 'orders' as const },
+  { href: '/app/profile',         label: 'Profile',  icon: User,          exact: false, badge: null },
 ]
 
 const POLL_INTERVAL = 30_000 // 30 seconds
