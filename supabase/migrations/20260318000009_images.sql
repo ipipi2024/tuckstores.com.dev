@@ -188,7 +188,7 @@ create policy "product_images_bucket_member_write"
       select 1
       from   public.products p
       join   public.business_memberships bm on bm.business_id = p.business_id
-      where  p.id        = ((storage.foldername(name))[2])::uuid
+      where  p.id        = ((storage.foldername(objects.name))[2])::uuid
         and  bm.user_id  = auth.uid()
         and  bm.status   = 'active'
     )
