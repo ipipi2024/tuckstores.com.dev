@@ -68,7 +68,7 @@ export async function cancelOrder(orderId: string): Promise<void> {
     .update({ status: 'cancelled' })
     .eq('id', orderId)
     .in('status', ['pending', 'accepted'])
-    .select('id')
+    .select('id, business_id, order_number')
 
   if (error) {
     redirect(`/app/orders/${orderId}?error=` + encodeURIComponent(error.message))
@@ -80,6 +80,19 @@ export async function cancelOrder(orderId: string): Promise<void> {
         encodeURIComponent('This order can no longer be cancelled because preparation has already started.')
     )
   }
+
+  // Notify all active business members that the customer cancelled — fire-and-forget
+  const { business_id, order_number } = data[0]
+  dispatchNotificationToBusinessMembers(business_id, {
+    type:  'order_status_changed',
+    title: 'Order cancelled by customer',
+    body:  `Order ${order_number} has been cancelled.`,
+    data: {
+      order_id:    orderId,
+      business_id,
+      url:         `/business/{slug}/orders/${orderId}`,
+    },
+  }).catch(() => {})
 
   redirect(`/app/orders/${orderId}?cancelled=1`)
 }

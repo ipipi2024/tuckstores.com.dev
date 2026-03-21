@@ -1,8 +1,9 @@
 'use client'
 
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useNotifications } from '@/components/NotificationProvider'
-import { markNotificationRead } from './actions'
+import { markNotificationRead, fetchOlderNotifications } from './actions'
 import { ShoppingBag, MessageSquare, Bell } from 'lucide-react'
 
 type NotificationRow = {
@@ -33,9 +34,20 @@ function fmtTime(dateStr: string): string {
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 }
 
-export default function NotificationList({ notifications }: { notifications: NotificationRow[] }) {
+export default function NotificationList({
+  notifications,
+  initialHasMore = false,
+}: {
+  notifications: NotificationRow[]
+  initialHasMore?: boolean
+}) {
   const router = useRouter()
   const { setUnreadCount } = useNotifications()
+  const [extras, setExtras] = useState<NotificationRow[]>([])
+  const [hasMore, setHasMore] = useState(initialHasMore)
+  const [loadingMore, setLoadingMore] = useState(false)
+
+  const all = [...notifications, ...extras]
 
   async function handleClick(n: NotificationRow) {
     if (!n.read_at) {
@@ -47,9 +59,17 @@ export default function NotificationList({ notifications }: { notifications: Not
     if (url) router.push(url)
   }
 
+  async function handleLoadMore() {
+    setLoadingMore(true)
+    const { notifications: next, hasMore: more } = await fetchOlderNotifications(all.length)
+    setExtras((prev) => [...prev, ...(next as NotificationRow[])])
+    setHasMore(more)
+    setLoadingMore(false)
+  }
+
   return (
     <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl divide-y divide-gray-100 dark:divide-neutral-800 overflow-hidden">
-      {notifications.map((n) => {
+      {all.map((n) => {
         const Icon = TYPE_ICON[n.type] ?? Bell
         const isUnread = !n.read_at
         return (
@@ -86,6 +106,18 @@ export default function NotificationList({ notifications }: { notifications: Not
           </button>
         )
       })}
+
+      {hasMore && (
+        <div className="px-4 py-3 flex justify-center">
+          <button
+            onClick={handleLoadMore}
+            disabled={loadingMore}
+            className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline disabled:opacity-50"
+          >
+            {loadingMore ? 'Loading…' : 'Load more'}
+          </button>
+        </div>
+      )}
     </div>
   )
 }

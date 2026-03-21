@@ -202,6 +202,8 @@ export async function updateOrderStatus(
     rejected:         'Your order has been declined',
     ready:            'Your order is ready',
     out_for_delivery: 'Your order is out for delivery',
+    completed:        'Your order is complete',
+    cancelled:        'Your order has been cancelled',
   }
   const notifyTitle = STATUS_TITLES[newStatus]
   if (notifyTitle && order.customer_user_id) {

@@ -8,15 +8,18 @@ export default async function NotificationsPage() {
   const user = await getAuthUser()
   const supabase = await createClient()
 
+  const PAGE_SIZE = 30
+
   // RLS: select own — fetches only this user's notifications
   const { data: notifications } = await supabase
     .from('notifications')
     .select('id, type, title, body, data, read_at, created_at')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
-    .limit(100)
+    .limit(PAGE_SIZE)
 
   const allNotifications = notifications ?? []
+  const hasMore = allNotifications.length === PAGE_SIZE
   const unreadCount = allNotifications.filter((n) => !n.read_at).length
 
   return (
@@ -43,7 +46,7 @@ export default async function NotificationsPage() {
           <p className="text-sm text-gray-400 dark:text-neutral-500">No notifications yet</p>
         </div>
       ) : (
-        <NotificationList notifications={allNotifications} />
+        <NotificationList notifications={allNotifications} initialHasMore={hasMore} />
       )}
     </div>
   )

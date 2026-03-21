@@ -13,10 +13,13 @@ import {
   createContext,
   useContext,
   useEffect,
+  useRef,
   useState,
   useCallback,
   type ReactNode,
 } from 'react'
+import { useRouter } from 'next/navigation'
+import { Bell, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 export type NotificationRow = {
@@ -96,10 +99,81 @@ export function NotificationProvider({
       value={{ unreadCount, latestNotification, setUnreadCount, resetUnread, clearLatest }}
     >
       {children}
+      <NotificationToast />
     </NotificationContext.Provider>
   )
 }
 
 export function useNotifications() {
   return useContext(NotificationContext)
+}
+
+// ── In-app toast ──────────────────────────────────────────────────────────────
+
+/**
+ * Renders a small fixed toast whenever a new realtime notification arrives.
+ * - Auto-dismisses after 4.5 s
+ * - Tracks shown IDs so it never replays the same notification
+ * - Clicking the toast navigates to notification.data.url
+ * Rendered inside NotificationProvider so it works in both /app and /business layouts.
+ */
+function NotificationToast() {
+  const { latestNotification, clearLatest } = useContext(NotificationContext)
+  const router = useRouter()
+  const shownId = useRef<string | null>(null)
+  const [current, setCurrent] = useState<NotificationRow | null>(null)
+
+  useEffect(() => {
+    if (!latestNotification) return
+    if (latestNotification.id === shownId.current) return
+
+    shownId.current = latestNotification.id
+    setCurrent(latestNotification)
+
+    const timer = setTimeout(() => {
+      setCurrent(null)
+      clearLatest()
+    }, 4500)
+    return () => clearTimeout(timer)
+  }, [latestNotification, clearLatest])
+
+  if (!current) return null
+
+  function dismiss() {
+    setCurrent(null)
+    clearLatest()
+  }
+
+  function handleClick() {
+    const url = current?.data?.url
+    dismiss()
+    if (url) router.push(url)
+  }
+
+  return (
+    <div
+      role="alert"
+      onClick={handleClick}
+      className="fixed bottom-4 right-4 z-50 w-72 sm:w-80 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-xl shadow-lg p-3.5 flex items-start gap-3 cursor-pointer select-none"
+    >
+      <div className="shrink-0 mt-0.5 w-7 h-7 rounded-full bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center">
+        <Bell size={13} className="text-indigo-600 dark:text-indigo-400" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+          {current.title}
+        </p>
+        <p className="text-xs text-gray-500 dark:text-neutral-400 truncate mt-0.5">
+          {current.body}
+        </p>
+      </div>
+      <button
+        onClick={(e) => { e.stopPropagation(); dismiss() }}
+        aria-label="Dismiss notification"
+        className="shrink-0 text-gray-300 dark:text-neutral-600 hover:text-gray-500 dark:hover:text-neutral-400 transition-colors"
+      >
+        <X size={14} />
+      </button>
+    </div>
+  )
 }
