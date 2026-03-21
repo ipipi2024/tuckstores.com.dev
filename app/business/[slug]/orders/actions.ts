@@ -170,13 +170,15 @@ export async function updateOrderStatus(
         for (const item of items) {
           if (!item.product_id) continue
           const lineTotal = item.unit_price_snapshot * item.quantity
-          await admin.rpc('upsert_business_customer_product', {
-            p_business_id: ctx.business.id,
-            p_user_id:     order.customer_user_id,
-            p_product_id:  item.product_id,
-            p_quantity:    item.quantity,
-            p_line_total:  lineTotal,
-          }).catch(() => {}) // non-fatal
+          try {
+            await admin.rpc('upsert_business_customer_product', {
+              p_business_id: ctx.business.id,
+              p_user_id:     order.customer_user_id,
+              p_product_id:  item.product_id,
+              p_quantity:    item.quantity,
+              p_line_total:  lineTotal,
+            })
+          } catch {} // non-fatal
         }
       }
     }
