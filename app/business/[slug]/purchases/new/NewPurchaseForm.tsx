@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { Plus, Trash2 } from 'lucide-react'
 import Spinner from '@/components/ui/Spinner'
 
-type Product = { id: string; name: string; cost_price_default: number | null }
+type Product = { id: string; name: string; cost_price_default: number | null; measurement_type: string | null; base_unit: string | null }
 type Supplier = { id: string; name: string }
 
 type LineItem = {
@@ -14,6 +14,8 @@ type LineItem = {
   product_name: string
   quantity: number
   unit_cost: number
+  measurement_type: string
+  base_unit: string
 }
 
 type Props = {
@@ -27,7 +29,7 @@ type Props = {
 let keyCounter = 0
 
 function newLine(): LineItem {
-  return { key: ++keyCounter, product_id: '', product_name: '', quantity: 1, unit_cost: 0 }
+  return { key: ++keyCounter, product_id: '', product_name: '', quantity: 1, unit_cost: 0, measurement_type: 'unit', base_unit: 'unit' }
 }
 
 export default function NewPurchaseForm({ action, products, suppliers, currencyCode, slug }: Props) {
@@ -47,10 +49,14 @@ export default function NewPurchaseForm({ action, products, suppliers, currencyC
   function handleProductChange(key: number, productId: string) {
     const product = products.find((p) => p.id === productId)
     if (product) {
+      const mtype = product.measurement_type ?? 'unit'
       updateLine(key, {
         product_id: product.id,
         product_name: product.name,
         unit_cost: product.cost_price_default ?? 0,
+        measurement_type: mtype,
+        base_unit: product.base_unit ?? 'unit',
+        quantity: mtype !== 'unit' ? 0 : 1,
       })
     }
   }
@@ -59,7 +65,7 @@ export default function NewPurchaseForm({ action, products, suppliers, currencyC
     e.preventDefault()
     if (submitting) return
 
-    const validLines = lines.filter((l) => l.product_id && l.quantity > 0)
+    const validLines = lines.filter((l) => l.product_id && l.quantity > 0 && (l.measurement_type === 'unit' ? Number.isInteger(l.quantity) : true))
     if (!validLines.length) return
 
     setSubmitting(true)
@@ -148,13 +154,22 @@ export default function NewPurchaseForm({ action, products, suppliers, currencyC
                 </select>
               </div>
               <div>
-                <label className={labelCls}>Qty</label>
+                <label className={labelCls}>
+                  {line.measurement_type !== 'unit' ? `Qty (${line.base_unit})` : 'Qty'}
+                </label>
                 <input
                   type="number"
-                  min="1"
-                  step="1"
+                  min={line.measurement_type !== 'unit' ? '0.001' : '1'}
+                  step={line.measurement_type !== 'unit' ? '0.001' : '1'}
                   value={line.quantity}
-                  onChange={(e) => updateLine(line.key, { quantity: Math.max(1, parseInt(e.target.value) || 1) })}
+                  onChange={(e) => {
+                    if (line.measurement_type !== 'unit') {
+                      const parsed = parseFloat(e.target.value) || 0
+                      updateLine(line.key, { quantity: Math.max(0, Math.round(parsed * 1000) / 1000) })
+                    } else {
+                      updateLine(line.key, { quantity: Math.max(1, parseInt(e.target.value) || 1) })
+                    }
+                  }}
                   className={inputCls}
                   required
                 />

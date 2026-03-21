@@ -23,7 +23,7 @@ export default async function AdjustInventoryPage({ params, searchParams }: Prop
   const supabase = await createClient()
   const { data: products } = await supabase
     .from('products')
-    .select('id, name, sku')
+    .select('id, name, sku, measurement_type, base_unit')
     .eq('business_id', ctx.business.id)
     .eq('is_active', true)
     .order('name')

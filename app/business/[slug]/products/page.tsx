@@ -18,6 +18,11 @@ function fmt(price: number | null, currency: string): string {
   }).format(price)
 }
 
+function fmtStock(qty: number, baseUnit: string): string {
+  if (baseUnit === 'unit') return String(Math.round(qty))
+  return `${Number(qty).toFixed(3)} ${baseUnit}`
+}
+
 export default async function ProductsPage({ params, searchParams }: Props) {
   const { slug } = await params
   const { error } = await searchParams
@@ -25,17 +30,16 @@ export default async function ProductsPage({ params, searchParams }: Props) {
   const canManage = canPerform(ctx.membership.role, 'manage_products')
   const supabase = await createClient()
 
-  // Fetch products with categories
   const { data: products } = await supabase
     .from('products')
     .select(`
       id, name, sku, selling_price, cost_price_default, is_active, created_at,
+      measurement_type, base_unit,
       product_categories ( name )
     `)
     .eq('business_id', ctx.business.id)
     .order('name')
 
-  // Fetch stock for all products in this business (sum across all locations)
   const { data: stockRows } = await supabase
     .from('product_stock')
     .select('product_id, stock_quantity')
@@ -110,6 +114,8 @@ export default async function ProductsPage({ params, searchParams }: Props) {
               <tbody className="divide-y divide-gray-50 dark:divide-neutral-800">
                 {products.map((p) => {
                   const stock = stockMap.get(p.id) ?? 0
+                  const baseUnit = p.base_unit ?? 'unit'
+                  const measurementType = p.measurement_type ?? 'unit'
                   const cat = Array.isArray(p.product_categories)
                     ? p.product_categories[0]
                     : p.product_categories
@@ -128,6 +134,9 @@ export default async function ProductsPage({ params, searchParams }: Props) {
                       </td>
                       <td className="px-4 py-3 text-right text-gray-700 dark:text-gray-300 tabular-nums">
                         {fmt(p.selling_price, ctx.business.currency_code)}
+                        {measurementType !== 'unit' && (
+                          <span className="text-xs text-gray-400 dark:text-neutral-500">/{baseUnit}</span>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-right tabular-nums">
                         <span
@@ -139,7 +148,7 @@ export default async function ProductsPage({ params, searchParams }: Props) {
                               : 'text-gray-700 dark:text-gray-300'
                           }
                         >
-                          {stock}
+                          {fmtStock(stock, baseUnit)}
                         </span>
                       </td>
                       <td className="px-4 py-3 hidden md:table-cell">

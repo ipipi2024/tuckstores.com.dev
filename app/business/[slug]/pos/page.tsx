@@ -27,18 +27,17 @@ export default async function POSPage({ params }: Props) {
 
   const supabase = await createClient()
 
-  // Fetch active products with their current stock
+  // Fetch active products with their current stock and measurement info
   const { data: products } = await supabase
     .from('products')
     .select(`
-      id, name, sku, selling_price,
+      id, name, sku, selling_price, measurement_type, base_unit,
       product_stock ( stock_quantity )
     `)
     .eq('business_id', ctx.business.id)
     .eq('is_active', true)
     .order('name')
 
-  // Normalise stock into a flat list
   const productList = (products ?? []).map((p) => {
     const stockRows = Array.isArray(p.product_stock) ? p.product_stock : (p.product_stock ? [p.product_stock] : [])
     const stock = stockRows.reduce((sum: number, r: { stock_quantity: number | null }) => sum + (r.stock_quantity ?? 0), 0)
@@ -48,6 +47,8 @@ export default async function POSPage({ params }: Props) {
       sku: p.sku ?? null,
       selling_price: p.selling_price ?? 0,
       stock,
+      measurement_type: p.measurement_type ?? 'unit',
+      base_unit: p.base_unit ?? 'unit',
     }
   })
 

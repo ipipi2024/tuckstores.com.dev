@@ -26,7 +26,7 @@ export default async function NewPurchasePage({ params, searchParams }: Props) {
   const [{ data: products }, { data: suppliers }] = await Promise.all([
     supabase
       .from('products')
-      .select('id, name, cost_price_default')
+      .select('id, name, cost_price_default, measurement_type, base_unit')
       .eq('business_id', ctx.business.id)
       .eq('is_active', true)
       .order('name'),

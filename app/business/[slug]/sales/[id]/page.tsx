@@ -19,6 +19,12 @@ function fmt(amount: number | null, currency: string): string {
   }).format(amount)
 }
 
+function fmtQty(quantity: number, unitSnapshot: string | null): string {
+  const unit = unitSnapshot ?? 'unit'
+  if (unit === 'unit') return String(Math.round(quantity))
+  return `${Number(quantity).toFixed(3)} ${unit}`
+}
+
 function fmtDatetime(dateStr: string | null): string {
   if (!dateStr) return '—'
   return new Date(dateStr).toLocaleString(undefined, {
@@ -61,7 +67,7 @@ export default async function SaleDetailPage({ params }: Props) {
       customer_user_id, customer_name_snapshot, customer_phone_snapshot,
       recorded_by:recorded_by_user_id ( full_name ),
       sale_items (
-        id, product_name_snapshot, quantity, unit_price, discount_amount, subtotal
+        id, product_name_snapshot, quantity, unit_snapshot, unit_price, discount_amount, subtotal
       ),
       sale_payments (
         id, payment_method, amount, reference, paid_at, tendered_amount, change_given
@@ -163,7 +169,7 @@ export default async function SaleDetailPage({ params }: Props) {
               {items.map((item) => (
                 <tr key={item.id}>
                   <td className="px-4 py-3 text-gray-900 dark:text-white">{item.product_name_snapshot}</td>
-                  <td className="px-4 py-3 text-right text-gray-700 dark:text-gray-300 tabular-nums">{item.quantity}</td>
+                  <td className="px-4 py-3 text-right text-gray-700 dark:text-gray-300 tabular-nums">{fmtQty(item.quantity, item.unit_snapshot)}</td>
                   <td className="px-4 py-3 text-right text-gray-700 dark:text-gray-300 tabular-nums">
                     {fmt(item.unit_price, ctx.business.currency_code)}
                   </td>

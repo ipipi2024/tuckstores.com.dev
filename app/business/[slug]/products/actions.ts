@@ -49,6 +49,22 @@ async function resolveCategory(
   return created?.id ?? null
 }
 
+const VALID_MEASUREMENT_TYPES = ['unit', 'weight', 'volume'] as const
+const MEASUREMENT_TO_BASE_UNIT: Record<string, string> = {
+  unit:   'unit',
+  weight: 'kg',
+  volume: 'L',
+}
+
+function parseMeasurement(formData: FormData): { measurement_type: string; base_unit: string } {
+  const raw = (formData.get('measurement_type') as string | null)?.trim() ?? 'unit'
+  const measurement_type = VALID_MEASUREMENT_TYPES.includes(raw as typeof VALID_MEASUREMENT_TYPES[number])
+    ? raw
+    : 'unit'
+  const base_unit = MEASUREMENT_TO_BASE_UNIT[measurement_type] ?? 'unit'
+  return { measurement_type, base_unit }
+}
+
 // ── Actions ───────────────────────────────────────────────────────────────────
 
 export async function addProduct(slug: string, formData: FormData) {
@@ -73,6 +89,8 @@ export async function addProduct(slug: string, formData: FormData) {
     formData.get('category_name') as string | null
   )
 
+  const { measurement_type, base_unit } = parseMeasurement(formData)
+
   const { data: newProduct, error } = await supabase
     .from('products')
     .insert({
@@ -85,6 +103,8 @@ export async function addProduct(slug: string, formData: FormData) {
       cost_price_default: parseDecimal(formData.get('cost_price_default')),
       category_id: categoryId,
       is_active: formData.get('is_active') !== 'false',
+      measurement_type,
+      base_unit,
     })
     .select('id')
     .single()
@@ -94,7 +114,6 @@ export async function addProduct(slug: string, formData: FormData) {
   }
 
   revalidatePath(productsPath(slug))
-  // Redirect to edit page so images can be added immediately
   redirect(`${productsPath(slug)}/${newProduct.id}`)
 }
 
@@ -115,7 +134,6 @@ export async function updateProduct(slug: string, id: string, formData: FormData
 
   const supabase = await createClient()
 
-  // Ensure the product belongs to this business before updating
   const { data: existing } = await supabase
     .from('products')
     .select('id')
@@ -133,6 +151,8 @@ export async function updateProduct(slug: string, id: string, formData: FormData
     formData.get('category_name') as string | null
   )
 
+  const { measurement_type, base_unit } = parseMeasurement(formData)
+
   const { error } = await supabase
     .from('products')
     .update({
@@ -144,6 +164,8 @@ export async function updateProduct(slug: string, id: string, formData: FormData
       cost_price_default: parseDecimal(formData.get('cost_price_default')),
       category_id: categoryId,
       is_active: formData.get('is_active') === 'true',
+      measurement_type,
+      base_unit,
     })
     .eq('id', id)
     .eq('business_id', ctx.business.id)
@@ -159,8 +181,6 @@ export async function updateProduct(slug: string, id: string, formData: FormData
 export async function deleteProduct(slug: string, id: string) {
   const ctx = await getBusinessContext(slug)
 
-  // DB RLS for products:delete requires owner or admin — managers are blocked at the DB
-  // layer. Check isAtLeastRole('admin') here to prevent a false-success redirect.
   if (!isAtLeastRole(ctx.membership.role, 'admin')) {
     return { error: 'Insufficient permissions' }
   }

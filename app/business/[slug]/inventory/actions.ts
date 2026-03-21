@@ -18,7 +18,7 @@ export async function adjustInventory(slug: string, formData: FormData) {
 
   const productId  = (formData.get('product_id')  as string | null)?.trim()
   const direction  = (formData.get('direction')    as string | null)?.trim()
-  const quantityRaw = parseInt((formData.get('quantity') as string | null) ?? '', 10)
+  const quantityRaw = parseFloat((formData.get('quantity') as string | null) ?? '')
   const reason     = (formData.get('reason')       as string | null)?.trim()
   const notesExtra = (formData.get('notes')        as string | null)?.trim() || null
 
@@ -30,8 +30,8 @@ export async function adjustInventory(slug: string, formData: FormData) {
   if (direction !== 'in' && direction !== 'out') {
     redirect(`${adjustPath}?error=Invalid+adjustment+type`)
   }
-  if (!quantityRaw || quantityRaw <= 0 || !Number.isInteger(quantityRaw)) {
-    redirect(`${adjustPath}?error=Quantity+must+be+a+positive+whole+number`)
+  if (isNaN(quantityRaw) || quantityRaw <= 0) {
+    redirect(`${adjustPath}?error=Quantity+must+be+a+positive+number`)
   }
   if (!reason) {
     redirect(`${adjustPath}?error=Reason+is+required`)
@@ -39,10 +39,10 @@ export async function adjustInventory(slug: string, formData: FormData) {
 
   const supabase = await createClient()
 
-  // Verify product belongs to this business
+  // Verify product belongs to this business and get measurement type
   const { data: product } = await supabase
     .from('products')
-    .select('id')
+    .select('id, measurement_type')
     .eq('id', productId)
     .eq('business_id', ctx.business.id)
     .maybeSingle()
@@ -51,10 +51,15 @@ export async function adjustInventory(slug: string, formData: FormData) {
     redirect(`${adjustPath}?error=Product+not+found`)
   }
 
+  const qty = Math.round(quantityRaw * 1000) / 1000
+  if ((product.measurement_type ?? 'unit') === 'unit' && !Number.isInteger(qty)) {
+    redirect(`${adjustPath}?error=Quantity+must+be+a+whole+number+for+unit+products`)
+  }
+
   const { data: { user } } = await supabase.auth.getUser()
 
   const movementType = direction === 'in' ? 'adjustment_in' : 'adjustment_out'
-  const quantity     = direction === 'in' ? quantityRaw : -quantityRaw
+  const quantity     = direction === 'in' ? qty : -qty
   const notes        = notesExtra ? `${reason}: ${notesExtra}` : reason
 
   const { error } = await supabase.from('inventory_movements').insert({

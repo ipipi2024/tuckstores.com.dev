@@ -17,7 +17,7 @@ const REASONS = [
   'Other',
 ]
 
-type Product = { id: string; name: string; sku: string | null }
+type Product = { id: string; name: string; sku: string | null; measurement_type: string | null; base_unit: string | null }
 
 function SubmitButton({ direction }: { direction: 'in' | 'out' }) {
   const { pending } = useFormStatus()
@@ -51,6 +51,12 @@ type Props = {
 export default function AdjustForm({ products, action, error }: Props) {
   const params = useParams<{ slug: string }>()
   const [direction, setDirection] = useState<'in' | 'out'>('in')
+  const [selectedProductId, setSelectedProductId] = useState('')
+
+  const selectedProduct = products.find((p) => p.id === selectedProductId)
+  const isMeasurable = selectedProduct && (selectedProduct.measurement_type ?? 'unit') !== 'unit'
+  const baseUnit = selectedProduct?.base_unit ?? 'unit'
+  const qtyLabel = isMeasurable ? `Quantity (${baseUnit})` : 'Quantity'
 
   return (
     <form action={action} className="space-y-5">
@@ -113,7 +119,8 @@ export default function AdjustForm({ products, action, error }: Props) {
             id="product_id"
             name="product_id"
             required
-            defaultValue=""
+            value={selectedProductId}
+            onChange={(e) => setSelectedProductId(e.target.value)}
             className="w-full px-3 py-2.5 rounded-xl border border-gray-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
             <option value="" disabled>Select a product…</option>
@@ -129,16 +136,16 @@ export default function AdjustForm({ products, action, error }: Props) {
       {/* Quantity */}
       <div>
         <label htmlFor="quantity" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-          Quantity <span className="text-red-500">*</span>
+          {qtyLabel} <span className="text-red-500">*</span>
         </label>
         <input
           id="quantity"
           name="quantity"
           type="number"
-          min="1"
-          step="1"
+          min={isMeasurable ? '0.001' : '1'}
+          step={isMeasurable ? '0.001' : '1'}
           required
-          placeholder="e.g. 10"
+          placeholder={isMeasurable ? `e.g. 2.500` : 'e.g. 10'}
           className="w-full px-3 py-2.5 rounded-xl border border-gray-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
         />
       </div>

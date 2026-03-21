@@ -22,7 +22,7 @@ export default async function InventoryPage({ params, searchParams }: Props) {
     .from('product_stock')
     .select(`
       product_id, stock_quantity,
-      products ( name, sku, is_active, product_categories ( name ) )
+      products ( name, sku, is_active, measurement_type, base_unit, product_categories ( name ) )
     `)
     .eq('business_id', ctx.business.id)
     .order('stock_quantity', { ascending: true })
@@ -30,7 +30,7 @@ export default async function InventoryPage({ params, searchParams }: Props) {
   // Also fetch products with zero / no stock row
   const { data: allProducts } = await supabase
     .from('products')
-    .select('id, name, sku, is_active, product_categories ( name )')
+    .select('id, name, sku, is_active, measurement_type, base_unit, product_categories ( name )')
     .eq('business_id', ctx.business.id)
     .eq('is_active', true)
     .order('name')
@@ -41,6 +41,12 @@ export default async function InventoryPage({ params, searchParams }: Props) {
     sku: string | null
     category: string | null
     stock_quantity: number
+    base_unit: string
+  }
+
+  function fmtStock(qty: number, baseUnit: string): string {
+    if (baseUnit === 'unit') return String(Math.round(qty))
+    return `${Number(qty).toFixed(3)} ${baseUnit}`
   }
 
   const stockMap = new Map<string, StockEntry>()
@@ -57,6 +63,7 @@ export default async function InventoryPage({ params, searchParams }: Props) {
       sku: product.sku ?? null,
       category: cat?.name ?? null,
       stock_quantity: row.stock_quantity ?? 0,
+      base_unit: product.base_unit ?? 'unit',
     })
   }
 
@@ -71,6 +78,7 @@ export default async function InventoryPage({ params, searchParams }: Props) {
         sku: p.sku ?? null,
         category: cat?.name ?? null,
         stock_quantity: 0,
+        base_unit: p.base_unit ?? 'unit',
       })
     }
   }
@@ -189,7 +197,7 @@ export default async function InventoryPage({ params, searchParams }: Props) {
                           ? 'text-amber-600 dark:text-amber-400 font-medium'
                           : 'text-gray-700 dark:text-gray-300'
                       }>
-                        {entry.stock_quantity}
+                        {fmtStock(entry.stock_quantity, entry.base_unit)}
                       </span>
                     </td>
                   </tr>

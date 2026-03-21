@@ -8,6 +8,7 @@ import { ArrowLeft, AlertCircle } from 'lucide-react'
 import DeleteProductButton from './DeleteProductButton'
 import SubmitButton from '@/components/ui/SubmitButton'
 import CategoryPicker from '../new/CategoryPicker'
+import MeasurementPicker from '../new/MeasurementPicker'
 import ProductImagesEditor from '@/components/ProductImagesEditor'
 
 type Props = {
@@ -28,7 +29,7 @@ export default async function EditProductPage({ params, searchParams }: Props) {
 
   const { data: product } = await supabase
     .from('products')
-    .select('id, name, description, sku, barcode, selling_price, cost_price_default, is_active, category_id, product_images ( id, url, storage_path, position )')
+    .select('id, name, description, sku, barcode, selling_price, cost_price_default, is_active, category_id, measurement_type, base_unit, product_images ( id, url, storage_path, position )')
     .eq('id', id)
     .eq('business_id', ctx.business.id)
     .maybeSingle()
@@ -99,30 +100,13 @@ export default async function EditProductPage({ params, searchParams }: Props) {
           </Field>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <Field label={`Selling price (${ctx.business.currency_code})`}>
-            <input
-              name="selling_price"
-              type="number"
-              step="0.01"
-              min="0"
-              defaultValue={product.selling_price ?? ''}
-              placeholder="0.00"
-              className={inputCls}
-            />
-          </Field>
-          <Field label={`Cost price (${ctx.business.currency_code})`}>
-            <input
-              name="cost_price_default"
-              type="number"
-              step="0.01"
-              min="0"
-              defaultValue={product.cost_price_default ?? ''}
-              placeholder="0.00"
-              className={inputCls}
-            />
-          </Field>
-        </div>
+        {/* Measurement type + derived price labels (client component) */}
+        <MeasurementPicker
+          currencyCode={ctx.business.currency_code}
+          defaultMeasurementType={product.measurement_type ?? 'unit'}
+          defaultSellingPrice={product.selling_price}
+          defaultCostPrice={product.cost_price_default}
+        />
 
         <Field label="Category">
           <CategoryPicker

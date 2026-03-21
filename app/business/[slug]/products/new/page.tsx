@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { ArrowLeft, AlertCircle } from 'lucide-react'
 import SubmitButton from '@/components/ui/SubmitButton'
 import CategoryPicker from './CategoryPicker'
+import MeasurementPicker from './MeasurementPicker'
 
 type Props = {
   params: Promise<{ slug: string }>
@@ -69,14 +70,8 @@ export default async function NewProductPage({ params, searchParams }: Props) {
           </Field>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <Field label={`Selling price (${ctx.business.currency_code})`}>
-            <input name="selling_price" type="number" step="0.01" min="0" placeholder="0.00" className={inputCls} />
-          </Field>
-          <Field label={`Cost price (${ctx.business.currency_code})`}>
-            <input name="cost_price_default" type="number" step="0.01" min="0" placeholder="0.00" className={inputCls} />
-          </Field>
-        </div>
+        {/* Measurement type + derived price labels (client component) */}
+        <MeasurementPicker currencyCode={ctx.business.currency_code} />
 
         <Field label="Category">
           <CategoryPicker categories={categories ?? []} />
