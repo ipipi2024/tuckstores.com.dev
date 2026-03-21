@@ -48,7 +48,7 @@ export async function sendBusinessMessage(
       body,
     })
 
-  // Notify the customer — fire-and-forget, never blocks the redirect
+  // Push-only: messages use conversation read-tracking for badges, not notifications rows
   if (conv.customer_user_id) {
     dispatchNotification({
       userId: conv.customer_user_id,
@@ -60,7 +60,7 @@ export async function sendBusinessMessage(
         business_id:     ctx.business.id,
         url:             `/app/messages/${conversationId}`,
       },
-    }).catch(() => {})
+    }, { pushOnly: true }).catch(() => {})
   }
 
   redirect(threadPath)

@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useNotifications } from '@/components/NotificationProvider'
 import { markNotificationRead, fetchOlderNotifications } from './actions'
-import { ShoppingBag, MessageSquare, Bell } from 'lucide-react'
+import { ShoppingBag, Bell } from 'lucide-react'
 
 type NotificationRow = {
   id: string
@@ -17,7 +17,6 @@ type NotificationRow = {
 }
 
 const TYPE_ICON: Record<string, React.ElementType> = {
-  new_message:          MessageSquare,
   order_placed:         ShoppingBag,
   order_status_changed: ShoppingBag,
 }

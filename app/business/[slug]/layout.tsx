@@ -15,11 +15,22 @@ export default async function BusinessLayout({ children, params }: Props) {
   // Validates auth + active membership. Redirects to /login or /business/select on failure.
   const [ctx, user] = await Promise.all([getBusinessContext(slug), getAuthUser()])
   const admin = createAdminClient()
-  const { count: unreadNotifications } = await admin
-    .from('notifications')
-    .select('id', { count: 'exact', head: true })
-    .eq('user_id', user.id)
-    .is('read_at', null)
+
+  const [{ count: unreadNotifications }, { data: convs }] = await Promise.all([
+    admin
+      .from('notifications')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .is('read_at', null),
+    admin
+      .from('conversations')
+      .select('updated_at, business_last_read_at')
+      .eq('business_id', ctx.business.id),
+  ])
+
+  const unreadMessages = (convs ?? []).filter(
+    (c) => !c.business_last_read_at || new Date(c.updated_at) > new Date(c.business_last_read_at)
+  ).length
 
   // Subscription status banner
   let banner: { message: string; variant: 'warning' | 'error' } | null = null
@@ -69,6 +80,7 @@ export default async function BusinessLayout({ children, params }: Props) {
         slug={slug}
         businessName={ctx.business.name}
         role={ctx.membership.role}
+        messagesBadge={unreadMessages}
       />
 
       <main className="lg:pl-56 pt-14 lg:pt-0 transition-all duration-300">

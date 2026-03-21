@@ -29,17 +29,23 @@ export interface NotificationPayload {
 
 /**
  * Dispatch a notification to a single user.
+ * Pass { pushOnly: true } to skip the DB insert and only send push.
  */
-export async function dispatchNotification(payload: NotificationPayload): Promise<void> {
+export async function dispatchNotification(
+  payload: NotificationPayload,
+  options?: { pushOnly?: boolean },
+): Promise<void> {
   try {
-    const admin = createAdminClient()
-    await admin.from('notifications').insert({
-      user_id: payload.userId,
-      type:    payload.type,
-      title:   payload.title,
-      body:    payload.body,
-      data:    payload.data,
-    })
+    if (!options?.pushOnly) {
+      const admin = createAdminClient()
+      await admin.from('notifications').insert({
+        user_id: payload.userId,
+        type:    payload.type,
+        title:   payload.title,
+        body:    payload.body,
+        data:    payload.data,
+      })
+    }
     sendPushToUser(payload.userId, payload.title, payload.body, payload.data.url ?? '/').catch(() => {})
   } catch {
     // Never surface to caller
@@ -52,9 +58,14 @@ export async function dispatchNotification(payload: NotificationPayload): Promis
  *
  * If `data.url` contains `{slug}`, it will be replaced with the business slug.
  */
+/**
+ * Dispatch a notification to all active members of a business.
+ * Pass { pushOnly: true } to skip DB insert and only send push.
+ */
 export async function dispatchNotificationToBusinessMembers(
   businessId: string,
-  payload: Omit<NotificationPayload, 'userId'>
+  payload: Omit<NotificationPayload, 'userId'>,
+  options?: { pushOnly?: boolean },
 ): Promise<void> {
   try {
     const admin = createAdminClient()
@@ -80,15 +91,16 @@ export async function dispatchNotificationToBusinessMembers(
       url: (payload.data.url ?? '/').replace('{slug}', slug),
     }
 
-    const rows = members.map((m) => ({
-      user_id: m.user_id as string,
-      type:    payload.type,
-      title:   payload.title,
-      body:    payload.body,
-      data:    resolvedData,
-    }))
-
-    await admin.from('notifications').insert(rows)
+    if (!options?.pushOnly) {
+      const rows = members.map((m) => ({
+        user_id: m.user_id as string,
+        type:    payload.type,
+        title:   payload.title,
+        body:    payload.body,
+        data:    resolvedData,
+      }))
+      await admin.from('notifications').insert(rows)
+    }
 
     // Push each member — fire-and-forget
     for (const m of members) {

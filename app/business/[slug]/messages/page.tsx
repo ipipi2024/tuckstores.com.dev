@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { MessageSquare } from 'lucide-react'
 import Link from 'next/link'
+import AutoRefresh from '@/app/app/messages/AutoRefresh'
 
 type Props = { params: Promise<{ slug: string }> }
 
@@ -46,6 +47,7 @@ export default async function BusinessMessagesPage({ params }: Props) {
 
   return (
     <div className="space-y-4">
+      <AutoRefresh refreshOnMount />
       <div className="flex items-center gap-2">
         <MessageSquare size={18} className="text-gray-400" />
         <div>

@@ -82,7 +82,7 @@ export async function sendCustomerMessage(conversationId: string, formData: Form
       body,
     })
 
-  // Notify all active business members — fire-and-forget
+  // Push-only: messages use conversation read-tracking for badges, not notifications rows
   dispatchNotificationToBusinessMembers(conv.business_id, {
     type:  'new_message',
     title: 'New message from a customer',
@@ -92,7 +92,7 @@ export async function sendCustomerMessage(conversationId: string, formData: Form
       business_id:     conv.business_id,
       url:             `/business/{slug}/messages/${conversationId}`,
     },
-  }).catch(() => {})
+  }, { pushOnly: true }).catch(() => {})
 
   redirect(`/app/messages/${conversationId}`)
 }

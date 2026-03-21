@@ -40,6 +40,7 @@ type NavItem = {
   icon: React.ElementType
   exact?: boolean
   minRole: MembershipRole
+  badge?: 'messages'
 }
 
 const ALL_NAV: NavItem[] = [
@@ -53,7 +54,7 @@ const ALL_NAV: NavItem[] = [
   { label: 'Inventory',  path: '/inventory',   icon: Boxes,                      minRole: 'staff' },
   { label: 'Products',   path: '/products',    icon: Tag,                        minRole: 'staff' },
   { label: 'Suppliers',  path: '/suppliers',   icon: Truck,                      minRole: 'inventory_clerk' },
-  { label: 'Messages',       path: '/messages',       icon: MessageSquare, minRole: 'staff' },
+  { label: 'Messages',       path: '/messages',       icon: MessageSquare, minRole: 'staff',   badge: 'messages' as const },
   { label: 'Announcements', path: '/announcements', icon: Megaphone,     minRole: 'manager' },
   { label: 'Staff',         path: '/staff',         icon: Users,         minRole: 'admin' },
   { label: 'Settings',   path: '/settings',    icon: Settings2,                  minRole: 'admin' },
@@ -69,9 +70,10 @@ type Props = {
   slug: string
   businessName: string
   role: MembershipRole
+  messagesBadge?: number
 }
 
-export default function BusinessNav({ slug, businessName, role }: Props) {
+export default function BusinessNav({ slug, businessName, role, messagesBadge = 0 }: Props) {
   const pathname = usePathname()
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
@@ -91,11 +93,14 @@ export default function BusinessNav({ slug, businessName, role }: Props) {
     return () => { document.body.classList.remove('sidebar-collapsed') }
   }, [collapsed])
 
+  const badgeCounts: Record<string, number> = { messages: messagesBadge }
+
   const NavLinks = ({ mobile = false }: { mobile?: boolean }) => (
     <>
-      {navItems.map(({ path, label, icon: Icon, exact }) => {
+      {navItems.map(({ path, label, icon: Icon, exact, badge }) => {
         const href = `${base}${path}`
         const active = isActive(href, pathname, exact)
+        const count = badge ? (badgeCounts[badge] ?? 0) : 0
         return (
           <Link
             key={path}
@@ -110,6 +115,11 @@ export default function BusinessNav({ slug, businessName, role }: Props) {
           >
             <Icon size={mobile ? 18 : 16} strokeWidth={1.75} />
             {label}
+            {count > 0 && (
+              <span className="ml-auto min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center leading-none">
+                {count > 99 ? '99+' : count}
+              </span>
+            )}
           </Link>
         )
       })}
