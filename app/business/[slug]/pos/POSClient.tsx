@@ -5,13 +5,19 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
   Search, Plus, Minus, Trash2, ChevronRight,
-  CheckCircle2, ArrowLeft, ShoppingCart, X, User, AlertCircle, LinkIcon,
+  CheckCircle2, ArrowLeft, ShoppingCart, X, User, AlertCircle,
 } from 'lucide-react'
 import Spinner from '@/components/ui/Spinner'
 import type { CompleteSalePayload, CompleteSaleResult, SaleItem } from './actions'
-import type { FoundCustomer, SearchCustomerResult } from './actions'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
+
+type CustomerEntry = {
+  userId: string
+  displayName: string | null
+  email: string | null
+  phone: string | null
+}
 
 type Product = {
   id: string
@@ -67,11 +73,11 @@ type Props = {
   products: Product[]
   currencyCode: string
   completeSale: (payload: CompleteSalePayload) => Promise<CompleteSaleResult>
-  searchCustomer: (query: string) => Promise<SearchCustomerResult>
+  customers: CustomerEntry[]
   slug: string
 }
 
-export default function POSClient({ products, currencyCode, completeSale, searchCustomer, slug }: Props) {
+export default function POSClient({ products, currencyCode, completeSale, customers, slug }: Props) {
   const fmt = useFmt(currencyCode)
   const router = useRouter()
 
@@ -81,6 +87,18 @@ export default function POSClient({ products, currencyCode, completeSale, search
     window.addEventListener('focus', onFocus)
     return () => window.removeEventListener('focus', onFocus)
   }, [router])
+
+  // Close customer dropdown on outside click
+  useEffect(() => {
+    if (!showCustomerDropdown) return
+    function handleOutside(e: MouseEvent) {
+      if (customerDropdownRef.current && !customerDropdownRef.current.contains(e.target as Node)) {
+        setShowCustomerDropdown(false)
+      }
+    }
+    document.addEventListener('mousedown', handleOutside)
+    return () => document.removeEventListener('mousedown', handleOutside)
+  }, [showCustomerDropdown])
 
   // ── Cart state ─────────────────────────────────────────────────────────────
 
@@ -101,15 +119,9 @@ export default function POSClient({ products, currencyCode, completeSale, search
   // remain editable alongside — they become the snapshot even when a user is linked.
 
   const [customerUserId, setCustomerUserId] = useState<string | null>(null)
-  const [showLinkSearch, setShowLinkSearch] = useState(false)
-  const [linkQuery, setLinkQuery] = useState('')
-  const [linkSearching, setLinkSearching] = useState(false)
-  const [linkResult, setLinkResult] = useState<
-    | null                                          // not yet searched
-    | { found: false }                             // searched, no result
-    | { found: true; customer: FoundCustomer }     // found
-  >(null)
-  const [linkError, setLinkError] = useState<string | null>(null)
+  const [customerFilter, setCustomerFilter] = useState('')
+  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false)
+  const customerDropdownRef = useRef<HTMLDivElement>(null)
 
   // ── Derived ────────────────────────────────────────────────────────────────
 
@@ -122,6 +134,19 @@ export default function POSClient({ products, currencyCode, completeSale, search
         (p.sku && p.sku.toLowerCase().includes(q))
     )
   }, [products, query])
+
+  const filteredCustomers = useMemo(() => {
+    const q = customerFilter.trim().toLowerCase()
+    if (!q) return customers.slice(0, 8)
+    return customers
+      .filter(
+        (c) =>
+          c.displayName?.toLowerCase().includes(q) ||
+          c.phone?.toLowerCase().includes(q) ||
+          c.email?.toLowerCase().includes(q)
+      )
+      .slice(0, 8)
+  }, [customers, customerFilter])
 
   const cartTotal = useMemo(
     () => cart.reduce((sum, item) => sum + item.quantity * item.unit_price - item.discount_amount, 0),
@@ -187,56 +212,24 @@ export default function POSClient({ products, currencyCode, completeSale, search
     setScreen('cart')
     // Reset customer linking state
     setCustomerUserId(null)
-    setShowLinkSearch(false)
-    setLinkQuery('')
-    setLinkResult(null)
-    setLinkError(null)
+    setCustomerFilter('')
+    setShowCustomerDropdown(false)
     setTimeout(() => searchRef.current?.focus(), 50)
   }
 
   // ── Customer linking ───────────────────────────────────────────────────────
 
-  async function handleLinkSearch() {
-    if (!linkQuery.trim() || linkSearching) return
-    setLinkSearching(true)
-    setLinkResult(null)
-    setLinkError(null)
-
-    const result = await searchCustomer(linkQuery.trim())
-
-    setLinkSearching(false)
-    if (!result.success) {
-      setLinkError(result.error)
-      return
-    }
-    if (!result.customer) {
-      setLinkResult({ found: false })
-      return
-    }
-    setLinkResult({ found: true, customer: result.customer })
-  }
-
-  function handleLink(customer: FoundCustomer) {
-    setCustomerUserId(customer.userId)
-    // Auto-fill name/phone from the registered user if the fields are empty
-    if (!customerName && customer.displayName) setCustomerName(customer.displayName)
-    if (!customerPhone && customer.phone)       setCustomerPhone(customer.phone)
-    // Reset search panel
-    setShowLinkSearch(false)
-    setLinkQuery('')
-    setLinkResult(null)
-    setLinkError(null)
+  function handleSelectCustomer(c: CustomerEntry) {
+    setCustomerUserId(c.userId)
+    if (!customerName && c.displayName) setCustomerName(c.displayName)
+    if (!customerPhone && c.phone)      setCustomerPhone(c.phone)
+    setCustomerFilter('')
+    setShowCustomerDropdown(false)
   }
 
   function handleUnlink() {
     setCustomerUserId(null)
-  }
-
-  function handleCancelLinkSearch() {
-    setShowLinkSearch(false)
-    setLinkQuery('')
-    setLinkResult(null)
-    setLinkError(null)
+    setCustomerFilter('')
   }
 
   // ── Submit ─────────────────────────────────────────────────────────────────
@@ -425,98 +418,78 @@ export default function POSClient({ products, currencyCode, completeSale, search
             />
           </div>
 
-          {/* Registered user linking */}
-          <div className="mt-3">
-            {!customerUserId ? (
-              <>
-                {!showLinkSearch ? (
-                  <button
-                    type="button"
-                    onClick={() => setShowLinkSearch(true)}
-                    className="flex items-center gap-1.5 text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
-                  >
-                    <LinkIcon size={11} />
-                    Link registered account
-                  </button>
-                ) : (
-                  <div className="space-y-2 pt-1">
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Find by phone or email (exact match)</p>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        placeholder="e.g. +1234567890 or user@email.com"
-                        value={linkQuery}
-                        onChange={(e) => { setLinkQuery(e.target.value); setLinkResult(null); setLinkError(null) }}
-                        onKeyDown={(e) => { if (e.key === 'Enter') handleLinkSearch() }}
-                        className={`${inputCls} flex-1`}
-                        autoFocus
-                      />
+          {/* Registered customer combobox */}
+          {customers.length > 0 && (
+            <div className="mt-3">
+              {!customerUserId ? (
+                <div className="relative" ref={customerDropdownRef}>
+                  <div className="relative">
+                    <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                    <input
+                      type="text"
+                      placeholder="Link registered customer…"
+                      value={customerFilter}
+                      onChange={(e) => { setCustomerFilter(e.target.value); setShowCustomerDropdown(true) }}
+                      onFocus={() => setShowCustomerDropdown(true)}
+                      className={`${inputCls} pl-8 pr-8`}
+                    />
+                    {customerFilter && (
                       <button
                         type="button"
-                        onClick={handleLinkSearch}
-                        disabled={linkSearching || !linkQuery.trim()}
-                        className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-sm font-medium rounded-xl transition-colors shrink-0"
+                        onClick={() => { setCustomerFilter(''); setShowCustomerDropdown(false) }}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 dark:hover:text-white"
                       >
-                        {linkSearching ? <Spinner className="w-4 h-4" /> : 'Find'}
+                        <X size={13} />
                       </button>
-                    </div>
-
-                    {linkError && (
-                      <p className="text-xs text-red-500 dark:text-red-400">{linkError}</p>
                     )}
-
-                    {linkResult?.found === false && (
-                      <p className="text-xs text-gray-400 dark:text-neutral-500">No registered account found.</p>
-                    )}
-
-                    {linkResult?.found === true && (
-                      <div className="flex items-center justify-between rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-950/40 px-3 py-2.5">
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                            {linkResult.customer.displayName ?? linkResult.customer.email ?? 'Unknown'}
-                          </p>
-                          {linkResult.customer.phone && (
-                            <p className="text-xs text-gray-500 dark:text-gray-400">{linkResult.customer.phone}</p>
-                          )}
-                          {linkResult.customer.isKnownCustomer && (
-                            <p className="text-xs text-indigo-600 dark:text-indigo-400">Existing customer</p>
-                          )}
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => handleLink(linkResult.customer)}
-                          className="ml-3 shrink-0 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg transition-colors"
-                        >
-                          Link
-                        </button>
-                      </div>
-                    )}
-
-                    <button
-                      type="button"
-                      onClick={handleCancelLinkSearch}
-                      className="text-xs text-gray-400 dark:text-neutral-500 hover:text-gray-600 dark:hover:text-gray-300"
-                    >
-                      Cancel
-                    </button>
                   </div>
-                )}
-              </>
-            ) : (
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-green-600 dark:text-green-400">
-                  Linked to registered account
-                </span>
-                <button
-                  type="button"
-                  onClick={handleUnlink}
-                  className="text-xs text-gray-400 dark:text-neutral-500 hover:text-gray-600 dark:hover:text-gray-300 underline"
-                >
-                  Unlink
-                </button>
-              </div>
-            )}
-          </div>
+                  {showCustomerDropdown && (
+                    <div className="absolute z-20 mt-1 w-full bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-xl shadow-lg overflow-hidden">
+                      {filteredCustomers.length === 0 ? (
+                        <p className="px-3 py-3 text-sm text-gray-400 dark:text-neutral-500">No customers found.</p>
+                      ) : (
+                        <div className="max-h-48 overflow-y-auto divide-y divide-gray-50 dark:divide-neutral-800">
+                          {filteredCustomers.map((c) => (
+                            <button
+                              key={c.userId}
+                              type="button"
+                              onMouseDown={(e) => { e.preventDefault(); handleSelectCustomer(c) }}
+                              className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors"
+                            >
+                              <div className="w-7 h-7 rounded-full bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center flex-shrink-0">
+                                <User size={12} className="text-indigo-600 dark:text-indigo-400" />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                  {c.displayName ?? c.email ?? 'Unknown'}
+                                </p>
+                                {c.phone && (
+                                  <p className="text-xs text-gray-400 dark:text-neutral-500 truncate">{c.phone}</p>
+                                )}
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-green-600 dark:text-green-400">
+                    Linked to registered account
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleUnlink}
+                    className="text-xs text-gray-400 dark:text-neutral-500 hover:text-gray-600 dark:hover:text-gray-300 underline"
+                  >
+                    Unlink
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Notes */}

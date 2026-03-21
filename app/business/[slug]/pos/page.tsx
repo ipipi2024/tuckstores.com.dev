@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { AlertCircle } from 'lucide-react'
 import POSClient from './POSClient'
-import { completeSale, searchCustomerForBusiness } from './actions'
+import { completeSale } from './actions'
 
 type Props = { params: Promise<{ slug: string }> }
 
@@ -51,15 +51,29 @@ export default async function POSPage({ params }: Props) {
     }
   })
 
+  // Fetch known customers for the name-search combobox in the POS
+  const { data: customerRows } = await supabase
+    .from('business_customers')
+    .select('user_id, display_name_snapshot, email_snapshot, phone_snapshot')
+    .eq('business_id', ctx.business.id)
+    .order('display_name_snapshot', { ascending: true })
+    .limit(500)
+
+  const customerList = (customerRows ?? []).map((c) => ({
+    userId: c.user_id as string,
+    displayName: c.display_name_snapshot as string | null,
+    email: c.email_snapshot as string | null,
+    phone: c.phone_snapshot as string | null,
+  }))
+
   const action = completeSale.bind(null, slug)
-  const searchAction = searchCustomerForBusiness.bind(null, slug)
 
   return (
     <POSClient
       products={productList}
       currencyCode={ctx.business.currency_code}
       completeSale={action}
-      searchCustomer={searchAction}
+      customers={customerList}
       slug={slug}
     />
   )
