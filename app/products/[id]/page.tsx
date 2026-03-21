@@ -91,6 +91,7 @@ export default async function ProductDetailPage({ params }: Props) {
               businessId={biz.id}
               businessSlug={biz.slug}
               businessName={biz.name}
+              currencyCode={currency}
               productId={product.id}
               productName={product.name}
               unitPrice={product.selling_price}
