@@ -25,7 +25,7 @@ export default function CartFab() {
   return (
     <Link
       href="/app/cart"
-      className="fixed bottom-20 right-4 z-50 flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-3 rounded-full shadow-lg transition-colors"
+      className="fixed bottom-6 right-4 z-50 flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-3 rounded-full shadow-lg transition-colors"
     >
       <ShoppingCart size={18} />
       <span className="text-sm font-semibold">{count} in cart</span>

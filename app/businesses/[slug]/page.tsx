@@ -15,6 +15,11 @@ function fmtCurrency(amount: number, currency: string): string {
   }).format(amount)
 }
 
+/** Turns a category name into a URL-safe anchor id */
+function catAnchor(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+}
+
 export default async function PublicBusinessPage({ params }: Props) {
   const { slug } = await params
   const supabase = await createClient()
@@ -89,11 +94,12 @@ export default async function PublicBusinessPage({ params }: Props) {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-neutral-950">
-      <div className="max-w-2xl mx-auto px-4 py-8 space-y-6">
+      <div className="max-w-2xl mx-auto px-4 py-6 space-y-5">
+
         {/* Back */}
         <Link
           href="/businesses"
-          className="inline-flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+          className="inline-flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
         >
           <ArrowLeft size={14} />
           Stores
@@ -110,47 +116,54 @@ export default async function PublicBusinessPage({ params }: Props) {
           </div>
         )}
 
-        {/* Business header */}
+        {/* Store header */}
         <div className="flex items-start gap-4">
-          {/* Logo or letter avatar */}
           {biz.logo_url ? (
             <img
               src={biz.logo_url}
               alt={`${biz.name} logo`}
-              className="shrink-0 w-14 h-14 rounded-2xl object-cover bg-gray-100 dark:bg-neutral-800"
+              className="shrink-0 w-16 h-16 rounded-2xl object-cover bg-gray-100 dark:bg-neutral-800"
             />
           ) : (
-            <div className="shrink-0 w-14 h-14 rounded-2xl bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-xl font-bold text-indigo-600 dark:text-indigo-300">
+            <div className="shrink-0 w-16 h-16 rounded-2xl bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-2xl font-bold text-indigo-600 dark:text-indigo-300">
               {biz.name.charAt(0).toUpperCase()}
             </div>
           )}
-          <div className="min-w-0">
-            <h1 className="text-xl font-bold text-gray-900 dark:text-white">{biz.name}</h1>
+          <div className="min-w-0 pt-1">
+            <h1 className="text-xl font-bold text-gray-900 dark:text-white leading-tight">{biz.name}</h1>
             {biz.catchline && (
               <p className="text-sm font-medium text-indigo-600 dark:text-indigo-400 mt-0.5">
                 {biz.catchline}
               </p>
             )}
             {biz.description && (
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{biz.description}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
+                {biz.description}
+              </p>
             )}
           </div>
         </div>
 
-        {/* Contact info */}
+        {/* Contact info — tappable links */}
         {(biz.phone || biz.email) && (
-          <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl px-4 py-3.5 space-y-2">
+          <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl px-4 py-3 space-y-2.5">
             {biz.phone && (
-              <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+              <a
+                href={`tel:${biz.phone}`}
+                className="flex items-center gap-2.5 text-sm text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+              >
                 <Phone size={14} className="text-gray-400 shrink-0" />
                 {biz.phone}
-              </div>
+              </a>
             )}
             {biz.email && (
-              <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+              <a
+                href={`mailto:${biz.email}`}
+                className="flex items-center gap-2.5 text-sm text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+              >
                 <Mail size={14} className="text-gray-400 shrink-0" />
                 {biz.email}
-              </div>
+              </a>
             )}
           </div>
         )}
@@ -159,19 +172,29 @@ export default async function PublicBusinessPage({ params }: Props) {
         {locations.length > 0 && (
           <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl divide-y divide-gray-100 dark:divide-neutral-800 overflow-hidden">
             <div className="px-4 py-3">
-              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Locations</p>
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                Locations
+              </p>
             </div>
             {locations.map((loc) => {
               const parts = [loc.city, loc.state_region, loc.country_code].filter(Boolean)
+              const mapsQuery = parts.join(', ')
               return (
                 <div key={loc.id} className="flex items-start gap-3 px-4 py-3">
                   <MapPin size={14} className="text-gray-400 shrink-0 mt-0.5" />
-                  <div>
+                  <div className="min-w-0">
                     {loc.name && (
                       <p className="text-sm font-medium text-gray-900 dark:text-white">{loc.name}</p>
                     )}
                     {parts.length > 0 && (
-                      <p className="text-sm text-gray-500 dark:text-gray-400">{parts.join(', ')}</p>
+                      <a
+                        href={`https://maps.google.com/maps?q=${encodeURIComponent(mapsQuery)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                      >
+                        {parts.join(', ')}
+                      </a>
                     )}
                   </div>
                 </div>
@@ -181,14 +204,37 @@ export default async function PublicBusinessPage({ params }: Props) {
         )}
 
         {/* Products */}
-        {products.length > 0 && (
+        {products.length > 0 ? (
           <div className="space-y-4">
-            <h2 className="text-base font-semibold text-gray-900 dark:text-white">Products</h2>
+            {/* Products heading + count */}
+            <div className="flex items-baseline justify-between">
+              <h2 className="text-base font-semibold text-gray-900 dark:text-white">Products</h2>
+              <span className="text-xs text-gray-400 dark:text-neutral-500">
+                {products.length} item{products.length !== 1 ? 's' : ''}
+              </span>
+            </div>
+
+            {/* Category pill nav — only shown when there are multiple categories */}
+            {grouped.length > 1 && (
+              <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 scrollbar-none">
+                {grouped.map(({ catName }) => (
+                  <a
+                    key={catName}
+                    href={`#cat-${catAnchor(catName)}`}
+                    className="shrink-0 text-xs font-medium px-3 py-1.5 rounded-full bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 text-gray-600 dark:text-neutral-300 hover:border-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                  >
+                    {catName}
+                  </a>
+                ))}
+              </div>
+            )}
+
+            {/* Grouped product sections */}
             {grouped.map(({ catName, products: catProds }) => (
-              <div key={catName} className="space-y-1">
+              <div key={catName} id={`cat-${catAnchor(catName)}`} className="space-y-1 scroll-mt-16">
                 {grouped.length > 1 && (
-                  <div className="flex items-center gap-2 mb-2">
-                    <Tag size={12} className="text-gray-400" />
+                  <div className="flex items-center gap-2 mb-2 pt-1">
+                    <Tag size={11} className="text-gray-400" />
                     <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
                       {catName}
                     </p>
@@ -196,52 +242,70 @@ export default async function PublicBusinessPage({ params }: Props) {
                 )}
                 <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl divide-y divide-gray-100 dark:divide-neutral-800 overflow-hidden">
                   {catProds.map((p) => (
-                    <div key={p.id} className="flex items-center gap-3 px-4 py-3.5">
-                      {/* Product thumbnail */}
-                      <Link href={`/products/${p.id}`} className="shrink-0">
-                        {p.firstImageUrl ? (
-                          <img
-                            src={p.firstImageUrl}
-                            alt={p.name}
-                            className="w-12 h-12 rounded-lg object-cover bg-gray-100 dark:bg-neutral-800"
-                          />
-                        ) : (
-                          <div className="w-12 h-12 rounded-lg bg-gray-100 dark:bg-neutral-800 flex items-center justify-center">
-                            <Tag size={16} className="text-gray-300 dark:text-neutral-600" />
+                    <div key={p.id} className="px-4 py-4">
+                      <div className="flex gap-3">
+                        {/* Thumbnail */}
+                        <Link href={`/products/${p.id}`} className="shrink-0">
+                          {p.firstImageUrl ? (
+                            <img
+                              src={p.firstImageUrl}
+                              alt={p.name}
+                              className="w-16 h-16 rounded-xl object-cover bg-gray-100 dark:bg-neutral-800"
+                            />
+                          ) : (
+                            <div className="w-16 h-16 rounded-xl bg-gray-100 dark:bg-neutral-800 flex items-center justify-center">
+                              <Tag size={18} className="text-gray-300 dark:text-neutral-600" />
+                            </div>
+                          )}
+                        </Link>
+
+                        {/* Content */}
+                        <div className="flex-1 min-w-0">
+                          <Link
+                            href={`/products/${p.id}`}
+                            className="block hover:opacity-80 transition-opacity"
+                          >
+                            <p className="text-sm font-semibold text-gray-900 dark:text-white leading-snug">
+                              {p.name}
+                            </p>
+                            {p.description && (
+                              <p className="text-xs text-gray-400 dark:text-neutral-500 mt-0.5 line-clamp-2 leading-relaxed">
+                                {p.description}
+                              </p>
+                            )}
+                          </Link>
+
+                          {/* Price + Add to cart */}
+                          <div className="flex items-center justify-between mt-2.5 gap-2">
+                            <span className="text-sm font-bold text-gray-900 dark:text-white tabular-nums">
+                              {fmtCurrency(p.selling_price, currency)}
+                            </span>
+                            <AddToCartButton
+                              businessId={biz.id}
+                              businessSlug={biz.slug}
+                              businessName={biz.name}
+                              currencyCode={currency}
+                              productId={p.id}
+                              productName={p.name}
+                              unitPrice={p.selling_price}
+                            />
                           </div>
-                        )}
-                      </Link>
-                      <Link href={`/products/${p.id}`} className="flex-1 min-w-0 hover:opacity-80 transition-opacity">
-                        <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{p.name}</p>
-                        {p.description && (
-                          <p className="text-xs text-gray-400 dark:text-neutral-500 truncate mt-0.5">{p.description}</p>
-                        )}
-                      </Link>
-                      <span className="shrink-0 text-sm font-semibold text-gray-900 dark:text-white tabular-nums">
-                        {fmtCurrency(p.selling_price, currency)}
-                      </span>
-                      <AddToCartButton
-                        businessId={biz.id}
-                        businessSlug={biz.slug}
-                        businessName={biz.name}
-                        currencyCode={currency}
-                        productId={p.id}
-                        productName={p.name}
-                        unitPrice={p.selling_price}
-                        className="shrink-0 !py-1.5 !px-3 text-xs"
-                      />
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
             ))}
           </div>
-        )}
-
-        {products.length === 0 && (
-          <p className="text-center text-sm text-gray-400 dark:text-neutral-500 py-8">
-            No products listed yet.
-          </p>
+        ) : (
+          <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl px-6 py-12 text-center">
+            <Tag size={28} className="mx-auto text-gray-300 dark:text-neutral-600 mb-3" />
+            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">No products listed yet</p>
+            <p className="text-xs text-gray-400 dark:text-neutral-500 mt-1">
+              Check back soon.
+            </p>
+          </div>
         )}
       </div>
       <CartFab />
