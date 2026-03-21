@@ -41,14 +41,16 @@ export default async function CustomerAnnouncementsPage() {
       <div className="space-y-4">
         <div className="flex items-center gap-2">
           <Megaphone size={18} className="text-gray-400" />
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white">Updates</h1>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Updates</h2>
         </div>
-        <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl px-6 py-10 text-center">
-          <Megaphone size={32} className="mx-auto text-gray-300 dark:text-neutral-600 mb-3" />
-          <p className="text-sm text-gray-500 dark:text-gray-400">No updates yet</p>
-          <p className="text-xs text-gray-400 dark:text-neutral-500 mt-1 max-w-xs mx-auto">
-            Announcements from businesses you&apos;ve purchased from will appear here.
-          </p>
+        <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl px-6 py-14 text-center space-y-2">
+          <Megaphone size={36} className="mx-auto text-gray-300 dark:text-neutral-600" />
+          <div>
+            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">No updates yet</p>
+            <p className="text-xs text-gray-400 dark:text-neutral-500 mt-1 max-w-xs mx-auto">
+              Updates from stores you&apos;ve ordered from will appear here.
+            </p>
+          </div>
         </div>
       </div>
     )
@@ -73,17 +75,22 @@ export default async function CustomerAnnouncementsPage() {
       <div className="flex items-center gap-2">
         <Megaphone size={18} className="text-gray-400" />
         <div>
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white">Updates</h1>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Updates</h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-            From businesses you&apos;ve visited
+            From stores you&apos;ve ordered from
           </p>
         </div>
       </div>
 
       {announcements.length === 0 ? (
-        <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl px-6 py-10 text-center">
-          <Megaphone size={32} className="mx-auto text-gray-300 dark:text-neutral-600 mb-3" />
-          <p className="text-sm text-gray-500 dark:text-gray-400">No announcements yet</p>
+        <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl px-6 py-14 text-center space-y-2">
+          <Megaphone size={36} className="mx-auto text-gray-300 dark:text-neutral-600" />
+          <div>
+            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">Nothing yet</p>
+            <p className="text-xs text-gray-400 dark:text-neutral-500 mt-1">
+              Updates from your stores will appear here.
+            </p>
+          </div>
         </div>
       ) : (
         <div className="space-y-3">

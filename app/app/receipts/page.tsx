@@ -1,6 +1,6 @@
 import { getAuthUser } from '@/lib/auth/get-user'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { Receipt } from 'lucide-react'
+import { Receipt, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 
 function fmtCurrency(amount: number, currency: string): string {
@@ -51,17 +51,19 @@ export default async function ReceiptsPage() {
           Receipts
         </h2>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-          {allSales.length} receipt{allSales.length !== 1 ? 's' : ''}
+          Your purchase history
         </p>
       </div>
 
       {allSales.length === 0 ? (
-        <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl px-5 py-10 text-center">
-          <Receipt size={32} className="mx-auto text-gray-300 dark:text-neutral-600 mb-3" />
-          <p className="text-sm text-gray-500 dark:text-gray-400">No receipts yet</p>
-          <p className="text-xs text-gray-400 dark:text-neutral-500 mt-1 max-w-xs mx-auto">
-            When a business links your account to a sale, the receipt will appear here.
-          </p>
+        <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl px-5 py-14 text-center space-y-2">
+          <Receipt size={36} className="mx-auto text-gray-300 dark:text-neutral-600" />
+          <div>
+            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">No receipts yet</p>
+            <p className="text-xs text-gray-400 dark:text-neutral-500 mt-1 max-w-xs mx-auto">
+              Your completed purchase receipts will appear here.
+            </p>
+          </div>
         </div>
       ) : (
         <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl divide-y divide-gray-100 dark:divide-neutral-800 overflow-hidden">
@@ -81,7 +83,7 @@ export default async function ReceiptsPage() {
                 {/* Info */}
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                    {biz?.name ?? 'Unknown business'}
+                    {biz?.name ?? 'Unknown store'}
                   </p>
                   <p className="text-xs text-gray-400 dark:text-neutral-500 mt-0.5">
                     {fmtDate(sale.created_at)}
@@ -99,6 +101,7 @@ export default async function ReceiptsPage() {
                     {sale.status.replace('_', ' ')}
                   </span>
                 </div>
+                <ChevronRight size={14} className="text-gray-300 dark:text-neutral-600 shrink-0 ml-1" />
               </Link>
             )
           })}

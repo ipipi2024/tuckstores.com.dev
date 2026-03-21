@@ -41,9 +41,14 @@ export default async function NotificationsPage() {
       </div>
 
       {allNotifications.length === 0 ? (
-        <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl px-5 py-12 text-center">
-          <Bell size={32} className="mx-auto text-gray-300 dark:text-neutral-600 mb-3" />
-          <p className="text-sm text-gray-400 dark:text-neutral-500">No notifications yet</p>
+        <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl px-5 py-14 text-center space-y-2">
+          <Bell size={36} className="mx-auto text-gray-300 dark:text-neutral-600" />
+          <div>
+            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">No notifications yet</p>
+            <p className="text-xs text-gray-400 dark:text-neutral-500 mt-1 max-w-xs mx-auto">
+              You&apos;ll be notified about order updates and messages.
+            </p>
+          </div>
         </div>
       ) : (
         <NotificationList notifications={allNotifications} initialHasMore={hasMore} />

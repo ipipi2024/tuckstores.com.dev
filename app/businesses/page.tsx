@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
-import { Store, Search, X } from 'lucide-react'
+import { Store, Search, X, ChevronRight } from 'lucide-react'
 
 const COUNTRIES = [
   { code: 'AU', name: 'Australia' },
@@ -73,7 +73,7 @@ export default async function BusinessesPage({ searchParams }: Props) {
 
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Stores</h1>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white">Stores</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             {hasFilters
               ? businesses.length > 0
@@ -200,6 +200,7 @@ export default async function BusinessesPage({ searchParams }: Props) {
                       <p className="text-xs text-gray-400 dark:text-neutral-500 mt-0.5">{location}</p>
                     )}
                   </div>
+                  <ChevronRight size={15} className="text-gray-300 dark:text-neutral-600 shrink-0" />
                 </Link>
               )
             })}

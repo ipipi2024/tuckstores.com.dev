@@ -77,12 +77,14 @@ export default async function CustomerMessagesPage({ searchParams }: Props) {
       )}
 
       {allConvs.length === 0 ? (
-        <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl px-5 py-10 text-center">
-          <MessageSquare size={32} className="mx-auto text-gray-300 dark:text-neutral-600 mb-3" />
-          <p className="text-sm text-gray-500 dark:text-gray-400">No messages yet</p>
-          <p className="text-xs text-gray-400 dark:text-neutral-500 mt-1 max-w-xs mx-auto">
-            Start a conversation from a receipt by tapping &ldquo;Contact business&rdquo;.
-          </p>
+        <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl px-5 py-14 text-center space-y-2">
+          <MessageSquare size={36} className="mx-auto text-gray-300 dark:text-neutral-600" />
+          <div>
+            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">No messages yet</p>
+            <p className="text-xs text-gray-400 dark:text-neutral-500 mt-1 max-w-xs mx-auto">
+              Tap &ldquo;Contact store&rdquo; from any order to start a conversation.
+            </p>
+          </div>
         </div>
       ) : (
         <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl divide-y divide-gray-100 dark:divide-neutral-800 overflow-hidden">

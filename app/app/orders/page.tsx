@@ -1,7 +1,7 @@
 import { getAuthUser } from '@/lib/auth/get-user'
 import { createAdminClient } from '@/lib/supabase/admin'
 import Link from 'next/link'
-import { ShoppingBag, ChevronRight, Clock } from 'lucide-react'
+import { ShoppingBag, ChevronRight, Clock, Store } from 'lucide-react'
 
 function fmtCurrency(amount: number, currency: string) {
   return new Intl.NumberFormat(undefined, {
@@ -62,13 +62,19 @@ export default async function OrdersPage() {
     return (
       <div className="space-y-5">
         <h2 className="text-xl font-bold text-gray-900 dark:text-white">My orders</h2>
-        <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl px-5 py-12 text-center">
-          <ShoppingBag size={32} className="mx-auto text-gray-300 dark:text-neutral-600 mb-3" />
-          <p className="text-sm text-gray-400 dark:text-neutral-500">No orders yet</p>
+        <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl px-5 py-14 text-center space-y-3">
+          <ShoppingBag size={36} className="mx-auto text-gray-300 dark:text-neutral-600" />
+          <div>
+            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">No orders yet</p>
+            <p className="text-xs text-gray-400 dark:text-neutral-500 mt-1">
+              Place an order from any store and it'll show up here.
+            </p>
+          </div>
           <Link
             href="/businesses"
-            className="mt-3 inline-block text-sm text-indigo-600 dark:text-indigo-400 hover:underline"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors"
           >
+            <Store size={14} />
             Browse stores
           </Link>
         </div>
