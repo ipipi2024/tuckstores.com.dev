@@ -113,8 +113,10 @@ export default async function OrdersPage() {
                     <span className="text-sm font-semibold text-gray-900 dark:text-white tabular-nums">
                       {fmtCurrency(order.total_amount, biz?.currency_code ?? 'USD')}
                     </span>
+                    <span className="text-xs font-medium text-indigo-600 dark:text-indigo-400">
+                      Track order →
+                    </span>
                   </div>
-                  <ChevronRight size={15} className="text-gray-300 dark:text-neutral-600 shrink-0" />
                 </Link>
               )
             })}
@@ -152,7 +154,7 @@ export default async function OrdersPage() {
                       {fmtCurrency(order.total_amount, biz?.currency_code ?? 'USD')}
                     </span>
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_STYLE[order.status] ?? STATUS_STYLE.cancelled}`}>
-                      {order.status.replace(/_/g, ' ')}
+                      {STATUS_LABEL[order.status] ?? order.status.replace(/_/g, ' ')}
                     </span>
                   </div>
                   <ChevronRight size={15} className="text-gray-300 dark:text-neutral-600 shrink-0" />

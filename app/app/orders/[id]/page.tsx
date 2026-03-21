@@ -1,10 +1,11 @@
 import { getAuthUser } from '@/lib/auth/get-user'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { notFound } from 'next/navigation'
+import { Fragment } from 'react'
 import Link from 'next/link'
 import {
   ArrowLeft, ShoppingBag, CheckCircle2, AlertCircle,
-  Package, Truck, Receipt, Store
+  Package, Truck, Receipt, Store, ChevronRight, MessageSquare
 } from 'lucide-react'
 import CancelOrderButton from './CancelOrderButton'
 import CartClearer from './CartClearer'
@@ -54,6 +55,56 @@ const STATUS_LABEL: Record<string, string> = {
   cancelled:        'Cancelled',
 }
 
+const STEP_INDEX: Record<string, number> = {
+  pending: 0,
+  accepted: 1,
+  preparing: 1,
+  ready: 2,
+  out_for_delivery: 2,
+  completed: 3,
+}
+
+const STEPPER_STATUSES = new Set(['pending', 'accepted', 'preparing', 'ready', 'out_for_delivery', 'completed'])
+
+function OrderStepper({ status, fulfillmentMethod }: { status: string; fulfillmentMethod: string }) {
+  const steps = fulfillmentMethod === 'delivery'
+    ? ['Placed', 'Confirmed', 'On the way', 'Delivered']
+    : ['Placed', 'Confirmed', 'Ready', 'Collected']
+  const currentStep = STEP_INDEX[status] ?? -1
+
+  return (
+    <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl px-4 py-4">
+      <div className="flex items-center">
+        {steps.map((step, i) => (
+          <Fragment key={step}>
+            <div className="flex flex-col items-center gap-1.5 flex-1 min-w-0">
+              <div className={`w-2.5 h-2.5 rounded-full ${
+                i <= currentStep
+                  ? 'bg-indigo-600 dark:bg-indigo-400'
+                  : 'bg-gray-200 dark:bg-neutral-700'
+              }`} />
+              <span className={`text-[10px] text-center leading-tight ${
+                i === currentStep
+                  ? 'font-semibold text-indigo-600 dark:text-indigo-400'
+                  : i < currentStep
+                  ? 'text-gray-400 dark:text-neutral-500'
+                  : 'text-gray-300 dark:text-neutral-600'
+              }`}>{step}</span>
+            </div>
+            {i < steps.length - 1 && (
+              <div className={`flex-1 h-0.5 mb-3.5 ${
+                i < currentStep
+                  ? 'bg-indigo-600 dark:bg-indigo-400'
+                  : 'bg-gray-200 dark:bg-neutral-700'
+              }`} />
+            )}
+          </Fragment>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export default async function OrderDetailPage({ params, searchParams }: Props) {
   const { id } = await params
   const { placed, cancelled, error } = await searchParams
@@ -77,7 +128,6 @@ export default async function OrderDetailPage({ params, searchParams }: Props) {
 
   const biz = Array.isArray(order.businesses) ? order.businesses[0] : order.businesses
 
-  // Look up the sale generated when this order was completed (matched by notes field)
   let receiptId: string | null = null
   if (order.status === 'completed') {
     const { data: sale } = await admin
@@ -88,14 +138,15 @@ export default async function OrderDetailPage({ params, searchParams }: Props) {
       .maybeSingle()
     receiptId = sale?.id ?? null
   }
+
   const items = order.order_items ?? []
   const currency = biz?.currency_code ?? 'USD'
 
   return (
-    <div className="space-y-5">
-      {/* Clear cart on successful placement */}
+    <div className="space-y-4">
       {placed === '1' && <CartClearer />}
 
+      {/* Header */}
       <div className="flex items-center gap-3">
         <Link
           href="/app/orders"
@@ -109,20 +160,19 @@ export default async function OrderDetailPage({ params, searchParams }: Props) {
         </div>
       </div>
 
+      {/* Banners */}
       {placed === '1' && (
         <div className="flex items-center gap-2 rounded-xl bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 px-4 py-3 text-sm text-green-700 dark:text-green-300">
           <CheckCircle2 size={15} className="flex-shrink-0" />
           Order placed! The business will confirm shortly.
         </div>
       )}
-
       {cancelled === '1' && (
         <div className="flex items-center gap-2 rounded-xl bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
           <CheckCircle2 size={15} className="flex-shrink-0" />
           Order cancelled.
         </div>
       )}
-
       {error && (
         <div className="flex items-center gap-2 rounded-xl bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 px-4 py-3 text-sm text-red-700 dark:text-red-300">
           <AlertCircle size={15} className="flex-shrink-0" />
@@ -130,27 +180,32 @@ export default async function OrderDetailPage({ params, searchParams }: Props) {
         </div>
       )}
 
-      {/* Status */}
-      <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl p-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          {order.fulfillment_method === 'delivery' ? (
-            <Truck size={18} className="text-gray-400" />
-          ) : (
-            <Package size={18} className="text-gray-400" />
-          )}
-          <div>
-            <p className="text-xs text-gray-400 dark:text-neutral-500 capitalize">
+      {/* Status card */}
+      <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl px-4 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {order.fulfillment_method === 'delivery' ? (
+              <Truck size={14} className="text-gray-400" />
+            ) : (
+              <Package size={14} className="text-gray-400" />
+            )}
+            <span className="text-xs text-gray-400 dark:text-neutral-500 capitalize">
               {order.fulfillment_method}
-            </p>
-            <p className="text-sm font-semibold text-gray-900 dark:text-white">
-              {STATUS_LABEL[order.status] ?? order.status}
-            </p>
+            </span>
           </div>
+          <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${STATUS_STYLE[order.status] ?? STATUS_STYLE.cancelled}`}>
+            {order.status.replace(/_/g, ' ')}
+          </span>
         </div>
-        <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${STATUS_STYLE[order.status] ?? STATUS_STYLE.cancelled}`}>
-          {order.status.replace(/_/g, ' ')}
-        </span>
+        <p className="text-lg font-bold text-gray-900 dark:text-white mt-2">
+          {STATUS_LABEL[order.status] ?? order.status}
+        </p>
       </div>
+
+      {/* Progress stepper */}
+      {STEPPER_STATUSES.has(order.status) && (
+        <OrderStepper status={order.status} fulfillmentMethod={order.fulfillment_method} />
+      )}
 
       {/* Business */}
       {biz && (
@@ -160,6 +215,7 @@ export default async function OrderDetailPage({ params, searchParams }: Props) {
         >
           <Store size={16} className="text-gray-400" />
           <span className="text-sm font-medium text-gray-900 dark:text-white flex-1">{biz.name}</span>
+          <ChevronRight size={14} className="text-gray-300 dark:text-neutral-600" />
         </Link>
       )}
 
@@ -226,20 +282,30 @@ export default async function OrderDetailPage({ params, searchParams }: Props) {
         </div>
       )}
 
-      {(order.status === 'pending' || order.status === 'accepted') && (
-        <CancelOrderButton orderId={order.id} />
-      )}
-
-      {/* Receipt link (only when completed and sale was created) */}
-      {receiptId && (
+      {/* Actions */}
+      <div className="space-y-2 pt-1">
+        {receiptId && (
+          <Link
+            href={`/app/receipts/${receiptId}`}
+            className="flex items-center gap-3 w-full px-4 py-3.5 rounded-xl bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors"
+          >
+            <Receipt size={15} className="text-gray-400" />
+            <span className="flex-1">View receipt</span>
+            <ChevronRight size={14} className="text-gray-300 dark:text-neutral-600" />
+          </Link>
+        )}
         <Link
-          href={`/app/receipts/${receiptId}`}
-          className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-neutral-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors"
+          href="/app/messages"
+          className="flex items-center gap-3 w-full px-4 py-3.5 rounded-xl bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors"
         >
-          <Receipt size={15} />
-          View receipt
+          <MessageSquare size={15} className="text-gray-400" />
+          <span className="flex-1">Contact store</span>
+          <ChevronRight size={14} className="text-gray-300 dark:text-neutral-600" />
         </Link>
-      )}
+        {(order.status === 'pending' || order.status === 'accepted') && (
+          <CancelOrderButton orderId={order.id} />
+        )}
+      </div>
     </div>
   )
 }

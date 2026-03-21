@@ -104,7 +104,7 @@ export default async function CustomerMessagesPage({ searchParams }: Props) {
                 href={`/app/messages/${conv.id}`}
                 className="flex items-center gap-3 px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors"
               >
-                <div className="shrink-0 w-10 h-10 rounded-full bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center text-sm font-semibold text-indigo-600 dark:text-indigo-400">
+                <div className={`shrink-0 w-10 h-10 rounded-full bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center text-sm font-semibold text-indigo-600 dark:text-indigo-400 ${unread ? 'ring-2 ring-indigo-500 dark:ring-indigo-400' : ''}`}>
                   {bizName.charAt(0).toUpperCase()}
                 </div>
 
