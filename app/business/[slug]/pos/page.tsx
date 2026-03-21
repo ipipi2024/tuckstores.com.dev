@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { AlertCircle } from 'lucide-react'
 import POSClient from './POSClient'
-import { completeSale } from './actions'
+import { completeSale, searchCustomerForBusiness } from './actions'
 
 type Props = { params: Promise<{ slug: string }> }
 
@@ -52,12 +52,14 @@ export default async function POSPage({ params }: Props) {
   })
 
   const action = completeSale.bind(null, slug)
+  const searchAction = searchCustomerForBusiness.bind(null, slug)
 
   return (
     <POSClient
       products={productList}
       currencyCode={ctx.business.currency_code}
       completeSale={action}
+      searchCustomer={searchAction}
       slug={slug}
     />
   )

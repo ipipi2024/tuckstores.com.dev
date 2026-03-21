@@ -164,16 +164,32 @@ export async function updateOrderStatus(
         amount:         order.total_amount,
         reference:      order.order_number,
       })
+
+      // Per-product customer analytics for registered users
+      if (order.customer_user_id) {
+        for (const item of items) {
+          if (!item.product_id) continue
+          const lineTotal = item.unit_price_snapshot * item.quantity
+          await admin.rpc('upsert_business_customer_product', {
+            p_business_id: ctx.business.id,
+            p_user_id:     order.customer_user_id,
+            p_product_id:  item.product_id,
+            p_quantity:    item.quantity,
+            p_line_total:  lineTotal,
+          }).catch(() => {}) // non-fatal
+        }
+      }
     }
 
-    // Update business_customers counts for this customer
+    // Update business_customers CRM counts and total_spent for this customer
     if (order.customer_user_id) {
       await admin.rpc('upsert_business_customer', {
-        p_business_id:                  ctx.business.id,
-        p_user_id:                      order.customer_user_id,
-        p_order_increment:              0,
-        p_completed_order_increment:    1,
-        p_completed_sale_increment:     1,
+        p_business_id:               ctx.business.id,
+        p_user_id:                   order.customer_user_id,
+        p_order_increment:           0,
+        p_completed_order_increment: 1,
+        p_completed_sale_increment:  1,
+        p_total_spent_increment:     order.total_amount,
       })
     }
   }

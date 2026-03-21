@@ -5,10 +5,11 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
   Search, Plus, Minus, Trash2, ChevronRight,
-  CheckCircle2, ArrowLeft, ShoppingCart, X, User, AlertCircle
+  CheckCircle2, ArrowLeft, ShoppingCart, X, User, AlertCircle, LinkIcon,
 } from 'lucide-react'
 import Spinner from '@/components/ui/Spinner'
 import type { CompleteSalePayload, CompleteSaleResult, SaleItem } from './actions'
+import type { FoundCustomer, SearchCustomerResult } from './actions'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -66,10 +67,11 @@ type Props = {
   products: Product[]
   currencyCode: string
   completeSale: (payload: CompleteSalePayload) => Promise<CompleteSaleResult>
+  searchCustomer: (query: string) => Promise<SearchCustomerResult>
   slug: string
 }
 
-export default function POSClient({ products, currencyCode, completeSale, slug }: Props) {
+export default function POSClient({ products, currencyCode, completeSale, searchCustomer, slug }: Props) {
   const fmt = useFmt(currencyCode)
   const router = useRouter()
 
@@ -80,7 +82,8 @@ export default function POSClient({ products, currencyCode, completeSale, slug }
     return () => window.removeEventListener('focus', onFocus)
   }, [router])
 
-  // State
+  // ── Cart state ─────────────────────────────────────────────────────────────
+
   const [query, setQuery] = useState('')
   const [cart, setCart] = useState<CartItem[]>([])
   const [screen, setScreen] = useState<Screen>('cart')
@@ -93,7 +96,23 @@ export default function POSClient({ products, currencyCode, completeSale, slug }
   const [receipt, setReceipt] = useState<ReceiptData | null>(null)
   const searchRef = useRef<HTMLInputElement>(null)
 
-  // Derived
+  // ── Customer linking state ─────────────────────────────────────────────────
+  // Tracks a linked registered user. Walk-in fields (customerName/customerPhone)
+  // remain editable alongside — they become the snapshot even when a user is linked.
+
+  const [customerUserId, setCustomerUserId] = useState<string | null>(null)
+  const [showLinkSearch, setShowLinkSearch] = useState(false)
+  const [linkQuery, setLinkQuery] = useState('')
+  const [linkSearching, setLinkSearching] = useState(false)
+  const [linkResult, setLinkResult] = useState<
+    | null                                          // not yet searched
+    | { found: false }                             // searched, no result
+    | { found: true; customer: FoundCustomer }     // found
+  >(null)
+  const [linkError, setLinkError] = useState<string | null>(null)
+
+  // ── Derived ────────────────────────────────────────────────────────────────
+
   const filteredProducts = useMemo(() => {
     if (!query.trim()) return products
     const q = query.toLowerCase()
@@ -118,12 +137,12 @@ export default function POSClient({ products, currencyCode, completeSale, slug }
       const existing = prev.find((i) => i.product_id === product.id)
       if (existing) {
         const newQty = existing.quantity + 1
-        if (newQty > existing.stock) return prev // RPC will also enforce this
+        if (newQty > existing.stock) return prev
         return prev.map((i) =>
           i.product_id === product.id ? { ...i, quantity: newQty } : i
         )
       }
-      if (product.stock <= 0) return prev // block adding out-of-stock items
+      if (product.stock <= 0) return prev
       return [
         ...prev,
         {
@@ -166,7 +185,58 @@ export default function POSClient({ products, currencyCode, completeSale, slug }
     setNotes('')
     setError(null)
     setScreen('cart')
+    // Reset customer linking state
+    setCustomerUserId(null)
+    setShowLinkSearch(false)
+    setLinkQuery('')
+    setLinkResult(null)
+    setLinkError(null)
     setTimeout(() => searchRef.current?.focus(), 50)
+  }
+
+  // ── Customer linking ───────────────────────────────────────────────────────
+
+  async function handleLinkSearch() {
+    if (!linkQuery.trim() || linkSearching) return
+    setLinkSearching(true)
+    setLinkResult(null)
+    setLinkError(null)
+
+    const result = await searchCustomer(linkQuery.trim())
+
+    setLinkSearching(false)
+    if (!result.success) {
+      setLinkError(result.error)
+      return
+    }
+    if (!result.customer) {
+      setLinkResult({ found: false })
+      return
+    }
+    setLinkResult({ found: true, customer: result.customer })
+  }
+
+  function handleLink(customer: FoundCustomer) {
+    setCustomerUserId(customer.userId)
+    // Auto-fill name/phone from the registered user if the fields are empty
+    if (!customerName && customer.displayName) setCustomerName(customer.displayName)
+    if (!customerPhone && customer.phone)       setCustomerPhone(customer.phone)
+    // Reset search panel
+    setShowLinkSearch(false)
+    setLinkQuery('')
+    setLinkResult(null)
+    setLinkError(null)
+  }
+
+  function handleUnlink() {
+    setCustomerUserId(null)
+  }
+
+  function handleCancelLinkSearch() {
+    setShowLinkSearch(false)
+    setLinkQuery('')
+    setLinkResult(null)
+    setLinkError(null)
   }
 
   // ── Submit ─────────────────────────────────────────────────────────────────
@@ -185,7 +255,7 @@ export default function POSClient({ products, currencyCode, completeSale, slug }
         discount_amount: i.discount_amount,
       })),
       payments: [{ payment_method: paymentMethod, amount: cartTotal, reference: null }],
-      customer_user_id:        null,
+      customer_user_id:        customerUserId,
       customer_name_snapshot:  customerName.trim() || null,
       customer_phone_snapshot: customerPhone.trim() || null,
       notes:                   notes.trim() || null,
@@ -210,6 +280,11 @@ export default function POSClient({ products, currencyCode, completeSale, slug }
     setScreen('receipt')
   }
 
+  // ── Shared styles ──────────────────────────────────────────────────────────
+
+  const inputCls = 'w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-gray-900 dark:text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500'
+  const sectionLabel = 'text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide'
+
   // ── Receipt screen ─────────────────────────────────────────────────────────
 
   if (screen === 'receipt' && receipt) {
@@ -221,8 +296,11 @@ export default function POSClient({ products, currencyCode, completeSale, slug }
           </div>
           <h1 className="text-xl font-bold text-gray-900 dark:text-white">Sale complete</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            {fmt(receipt.total)} · {PAYMENT_METHODS.find((m) => m.value === receipt.paymentMethod)?.label ?? receipt.paymentMethod}
+            {fmt(receipt.total)} · {receipt.paymentMethod}
           </p>
+          {customerUserId && (
+            <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-1">Linked to registered account</p>
+          )}
         </div>
 
         <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl divide-y divide-gray-50 dark:divide-neutral-800">
@@ -244,18 +322,18 @@ export default function POSClient({ products, currencyCode, completeSale, slug }
         </div>
 
         <div className="flex gap-3">
-          <button
-            onClick={() => clearCart(true)}
-            className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors"
-          >
-            New sale
-          </button>
           <Link
             href={`/business/${slug}/sales/${receipt.saleId}`}
-            className="flex-1 py-3 text-center text-sm font-medium text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-neutral-700 rounded-xl hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors"
+            className="flex-1 py-3 text-sm font-medium text-center border border-gray-200 dark:border-neutral-700 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors"
           >
             View receipt
           </Link>
+          <button
+            onClick={() => clearCart(true)}
+            className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition-colors"
+          >
+            New sale
+          </button>
         </div>
       </div>
     )
@@ -298,7 +376,7 @@ export default function POSClient({ products, currencyCode, completeSale, slug }
         {/* Payment method */}
         <div>
           <p className={sectionLabel}>Payment method</p>
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-4 gap-2 mt-2">
             {PAYMENT_METHODS.map((m) => (
               <button
                 key={m.value}
@@ -320,8 +398,16 @@ export default function POSClient({ products, currencyCode, completeSale, slug }
         <div>
           <div className="flex items-center gap-1.5 mb-2">
             <User size={13} className="text-gray-400" />
-            <p className={sectionLabel}>Customer <span className="text-gray-400 font-normal">(optional)</span></p>
+            <p className={sectionLabel}>Customer <span className="text-gray-400 font-normal normal-case tracking-normal">(optional)</span></p>
+            {customerUserId && (
+              <span className="ml-auto flex items-center gap-1 text-xs text-green-600 dark:text-green-400 font-medium">
+                <CheckCircle2 size={11} />
+                Registered
+              </span>
+            )}
           </div>
+
+          {/* Walk-in name + phone (always editable) */}
           <div className="space-y-2">
             <input
               type="text"
@@ -338,17 +424,110 @@ export default function POSClient({ products, currencyCode, completeSale, slug }
               className={inputCls}
             />
           </div>
+
+          {/* Registered user linking */}
+          <div className="mt-3">
+            {!customerUserId ? (
+              <>
+                {!showLinkSearch ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowLinkSearch(true)}
+                    className="flex items-center gap-1.5 text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
+                  >
+                    <LinkIcon size={11} />
+                    Link registered account
+                  </button>
+                ) : (
+                  <div className="space-y-2 pt-1">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Find by phone or email (exact match)</p>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="e.g. +1234567890 or user@email.com"
+                        value={linkQuery}
+                        onChange={(e) => { setLinkQuery(e.target.value); setLinkResult(null); setLinkError(null) }}
+                        onKeyDown={(e) => { if (e.key === 'Enter') handleLinkSearch() }}
+                        className={`${inputCls} flex-1`}
+                        autoFocus
+                      />
+                      <button
+                        type="button"
+                        onClick={handleLinkSearch}
+                        disabled={linkSearching || !linkQuery.trim()}
+                        className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-sm font-medium rounded-xl transition-colors shrink-0"
+                      >
+                        {linkSearching ? <Spinner className="w-4 h-4" /> : 'Find'}
+                      </button>
+                    </div>
+
+                    {linkError && (
+                      <p className="text-xs text-red-500 dark:text-red-400">{linkError}</p>
+                    )}
+
+                    {linkResult?.found === false && (
+                      <p className="text-xs text-gray-400 dark:text-neutral-500">No registered account found.</p>
+                    )}
+
+                    {linkResult?.found === true && (
+                      <div className="flex items-center justify-between rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-950/40 px-3 py-2.5">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                            {linkResult.customer.displayName ?? linkResult.customer.email ?? 'Unknown'}
+                          </p>
+                          {linkResult.customer.phone && (
+                            <p className="text-xs text-gray-500 dark:text-gray-400">{linkResult.customer.phone}</p>
+                          )}
+                          {linkResult.customer.isKnownCustomer && (
+                            <p className="text-xs text-indigo-600 dark:text-indigo-400">Existing customer</p>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleLink(linkResult.customer)}
+                          className="ml-3 shrink-0 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg transition-colors"
+                        >
+                          Link
+                        </button>
+                      </div>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={handleCancelLinkSearch}
+                      className="text-xs text-gray-400 dark:text-neutral-500 hover:text-gray-600 dark:hover:text-gray-300"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-green-600 dark:text-green-400">
+                  Linked to registered account
+                </span>
+                <button
+                  type="button"
+                  onClick={handleUnlink}
+                  className="text-xs text-gray-400 dark:text-neutral-500 hover:text-gray-600 dark:hover:text-gray-300 underline"
+                >
+                  Unlink
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Notes */}
         <div>
-          <p className={sectionLabel}>Notes <span className="text-gray-400 font-normal">(optional)</span></p>
+          <p className={sectionLabel}>Notes <span className="text-gray-400 font-normal normal-case tracking-normal">(optional)</span></p>
           <textarea
             rows={2}
             placeholder="Any notes for this sale"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            className={`${inputCls} resize-none`}
+            className={`${inputCls} resize-none mt-2`}
           />
         </div>
 
@@ -408,47 +587,42 @@ export default function POSClient({ products, currencyCode, completeSale, slug }
         {filteredProducts.length === 0 ? (
           <p className="text-sm text-gray-400 dark:text-neutral-500 text-center py-8">No products found.</p>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3 gap-2.5">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
             {filteredProducts.map((product) => {
-              const outOfStock = product.stock <= 0
               const inCart = cart.find((i) => i.product_id === product.id)
+              const outOfStock = product.stock <= 0
               return (
                 <button
                   key={product.id}
-                  onClick={() => !outOfStock && addToCart(product)}
+                  onClick={() => addToCart(product)}
                   disabled={outOfStock}
-                  className={`relative text-left p-3.5 rounded-xl border transition-all ${
+                  className={`relative text-left rounded-xl border p-3 transition-colors ${
                     outOfStock
-                      ? 'opacity-50 cursor-not-allowed bg-gray-50 dark:bg-neutral-900 border-gray-200 dark:border-neutral-800'
-                      : inCart
-                      ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-300 dark:border-indigo-700 hover:border-indigo-400'
-                      : 'bg-white dark:bg-neutral-900 border-gray-200 dark:border-neutral-800 hover:border-indigo-300 hover:shadow-sm'
+                      ? 'opacity-50 cursor-not-allowed border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900'
+                      : 'border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 hover:border-indigo-400 dark:hover:border-indigo-600 hover:shadow-sm active:scale-[0.98]'
                   }`}
                 >
-                  <p className="text-sm font-medium text-gray-900 dark:text-white leading-snug mb-1 line-clamp-2">
-                    {product.name}
+                  {inCart && (
+                    <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-indigo-600 text-white text-xs flex items-center justify-center font-bold">
+                      {inCart.quantity}
+                    </span>
+                  )}
+                  <p className="text-sm font-medium text-gray-900 dark:text-white leading-tight pr-6">{product.name}</p>
+                  {product.sku && (
+                    <p className="text-xs text-gray-400 dark:text-neutral-500 mt-0.5">#{product.sku}</p>
+                  )}
+                  <p className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 mt-1 tabular-nums">
+                    {fmt(product.selling_price)}
                   </p>
-                  <p className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 tabular-nums">
-                    {new Intl.NumberFormat(undefined, {
-                      style: 'currency',
-                      currency: currencyCode,
-                      minimumFractionDigits: 2,
-                    }).format(product.selling_price)}
-                  </p>
-                  <p className={`text-xs mt-1 ${
+                  <p className={`text-xs mt-0.5 ${
                     outOfStock
-                      ? 'text-red-500 dark:text-red-400'
+                      ? 'text-red-500'
                       : product.stock <= 5
-                      ? 'text-amber-500 dark:text-amber-400'
+                      ? 'text-amber-500'
                       : 'text-gray-400 dark:text-neutral-500'
                   }`}>
                     {outOfStock ? 'Out of stock' : `${product.stock} in stock`}
                   </p>
-                  {inCart && (
-                    <span className="absolute top-2 right-2 w-5 h-5 bg-indigo-600 text-white text-xs font-bold rounded-full flex items-center justify-center">
-                      {inCart.quantity}
-                    </span>
-                  )}
                 </button>
               )
             })}
@@ -456,24 +630,21 @@ export default function POSClient({ products, currencyCode, completeSale, slug }
         )}
       </div>
 
-      {/* Right: cart */}
-      <div className="lg:w-72 xl:w-80 shrink-0">
-        <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl overflow-hidden sticky top-4">
+      {/* Right: cart panel */}
+      <div className="w-full lg:w-80 shrink-0">
+        <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl overflow-hidden">
           {/* Cart header */}
-          <div className="px-4 py-3 border-b border-gray-100 dark:border-neutral-800 flex items-center justify-between">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-neutral-800">
             <div className="flex items-center gap-2">
               <ShoppingCart size={16} className="text-gray-400" />
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Cart</span>
-              {cartCount > 0 && (
-                <span className="text-xs bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.5 rounded-full font-medium">
-                  {cartCount}
-                </span>
-              )}
+              <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                Cart {cartCount > 0 && `(${cartCount})`}
+              </span>
             </div>
             {cart.length > 0 && (
               <button
                 onClick={() => clearCart()}
-                className="text-xs text-gray-400 hover:text-red-500 transition-colors"
+                className="text-xs text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors"
               >
                 Clear
               </button>
@@ -483,30 +654,27 @@ export default function POSClient({ products, currencyCode, completeSale, slug }
           {/* Cart items */}
           {cart.length === 0 ? (
             <div className="px-4 py-10 text-center">
+              <ShoppingCart size={24} className="mx-auto text-gray-300 dark:text-neutral-600 mb-2" />
               <p className="text-sm text-gray-400 dark:text-neutral-500">Cart is empty</p>
-              <p className="text-xs text-gray-300 dark:text-neutral-600 mt-1">Tap a product to add it</p>
+              <p className="text-xs text-gray-300 dark:text-neutral-600 mt-0.5">Tap a product to add it</p>
             </div>
           ) : (
             <>
-              <div className="divide-y divide-gray-50 dark:divide-neutral-800 max-h-[50vh] overflow-y-auto">
+              <div className="divide-y divide-gray-50 dark:divide-neutral-800 max-h-80 overflow-y-auto">
                 {cart.map((item) => (
-                  <div key={item.product_id} className="px-4 py-3 flex items-center gap-3">
+                  <div key={item.product_id} className="flex items-center gap-3 px-4 py-3">
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{item.product_name}</p>
                       <p className="text-xs text-gray-400 dark:text-neutral-500 tabular-nums">
-                        {new Intl.NumberFormat(undefined, {
-                          style: 'currency',
-                          currency: currencyCode,
-                          minimumFractionDigits: 2,
-                        }).format(item.unit_price)} each
+                        {fmt(item.unit_price)} each
                       </p>
                     </div>
-                    <div className="flex items-center gap-1.5 shrink-0">
+                    <div className="flex items-center gap-1 shrink-0">
                       <button
                         onClick={() => updateQty(item.product_id, -1)}
-                        className="w-7 h-7 rounded-lg border border-gray-200 dark:border-neutral-700 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:border-red-300 hover:text-red-500 transition-colors"
+                        className="w-7 h-7 rounded-lg border border-gray-200 dark:border-neutral-700 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors"
                       >
-                        {item.quantity === 1 ? <Trash2 size={12} /> : <Minus size={12} />}
+                        <Minus size={12} />
                       </button>
                       <span className="w-6 text-center text-sm font-medium text-gray-900 dark:text-white tabular-nums">
                         {item.quantity}
@@ -514,27 +682,33 @@ export default function POSClient({ products, currencyCode, completeSale, slug }
                       <button
                         onClick={() => updateQty(item.product_id, 1)}
                         disabled={item.quantity >= item.stock}
-                        className="w-7 h-7 rounded-lg border border-gray-200 dark:border-neutral-700 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:border-indigo-300 hover:text-indigo-500 disabled:opacity-30 transition-colors"
+                        className="w-7 h-7 rounded-lg border border-gray-200 dark:border-neutral-700 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors disabled:opacity-40"
                       >
                         <Plus size={12} />
+                      </button>
+                      <button
+                        onClick={() => removeFromCart(item.product_id)}
+                        className="ml-1 w-7 h-7 rounded-lg flex items-center justify-center text-gray-300 dark:text-neutral-600 hover:text-red-500 dark:hover:text-red-400 transition-colors"
+                      >
+                        <Trash2 size={12} />
                       </button>
                     </div>
                   </div>
                 ))}
               </div>
 
-              {/* Cart footer */}
+              {/* Cart total + checkout */}
               <div className="border-t border-gray-100 dark:border-neutral-800 px-4 py-3 space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-500 dark:text-gray-400">Total</span>
+                  <span className="text-sm font-semibold text-gray-900 dark:text-white">Total</span>
                   <span className="text-base font-bold text-gray-900 dark:text-white tabular-nums">{fmt(cartTotal)}</span>
                 </div>
                 <button
                   onClick={() => setScreen('checkout')}
-                  className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition-colors flex items-center justify-center gap-1.5"
+                  className="w-full flex items-center justify-center gap-2 py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition-colors"
                 >
                   Checkout
-                  <ChevronRight size={15} />
+                  <ChevronRight size={16} />
                 </button>
               </div>
             </>
@@ -544,10 +718,3 @@ export default function POSClient({ products, currencyCode, completeSale, slug }
     </div>
   )
 }
-
-// ── Shared style atoms ────────────────────────────────────────────────────────
-
-const sectionLabel = 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'
-
-const inputCls =
-  'w-full px-3 py-2.5 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500'

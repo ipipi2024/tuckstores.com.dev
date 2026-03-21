@@ -47,6 +47,8 @@ export type BusinessAction =
   | 'manage_orders'
   // Delivery settings
   | 'manage_delivery_settings'
+  // Customers (CRM)
+  | 'view_customers'
   // Analytics
   | 'view_analytics'
   // Announcements / messaging
@@ -72,6 +74,7 @@ const ALL_ACTIONS: BusinessAction[] = [
   'view_orders',
   'manage_orders',
   'manage_delivery_settings',
+  'view_customers',
   'view_analytics',
   'manage_announcements',
 ]
@@ -98,6 +101,7 @@ export const ROLE_PERMISSIONS: Record<MembershipRole, BusinessAction[]> = {
     'view_inventory',
     'view_orders',
     'manage_orders',
+    'view_customers',
     'view_analytics',
     'manage_announcements',
   ],
@@ -109,6 +113,7 @@ export const ROLE_PERMISSIONS: Record<MembershipRole, BusinessAction[]> = {
     'view_inventory',
     'view_orders',
     'manage_orders',
+    'view_customers',
   ],
 
   inventory_clerk: [

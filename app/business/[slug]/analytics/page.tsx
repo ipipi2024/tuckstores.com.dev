@@ -2,7 +2,7 @@ import { getBusinessContext } from '@/lib/auth/get-business-context'
 import { canPerform } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { BarChart2, Package, TrendingUp, ShoppingCart, Users } from 'lucide-react'
+import { BarChart2, Package, TrendingUp, ShoppingCart, Users, Contact, ChevronRight } from 'lucide-react'
 import SalesTrendChart from '@/components/SalesTrendChart'
 import TopProductsChart from '@/components/TopProductsChart'
 
@@ -58,6 +58,7 @@ export default async function AnalyticsPage({ params }: Props) {
     { data: stockRows },
     { data: activeProducts },
     { data: monthPurchases },
+    { data: topCustomers },
   ] = await Promise.all([
     // Sales last 90 days (for trend, channels, customer insights, summaries)
     supabase
@@ -102,6 +103,15 @@ export default async function AnalyticsPage({ params }: Props) {
       .select('id, total_amount')
       .eq('business_id', businessId)
       .gte('created_at', monthISO),
+
+    // Top customers by total spend (all-time)
+    supabase
+      .from('business_customers')
+      .select('user_id, display_name_snapshot, email_snapshot, total_spent, completed_sale_count')
+      .eq('business_id', businessId)
+      .gt('total_spent', 0)
+      .order('total_spent', { ascending: false })
+      .limit(5),
   ])
 
   // ── Revenue summary cards ──────────────────────────────────────────────────
@@ -430,6 +440,53 @@ export default async function AnalyticsPage({ params }: Props) {
           )}
         </section>
       </div>
+
+      {/* ── Top customers ── */}
+      {topCustomers && topCustomers.length > 0 && (
+        <section className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+              <Contact size={15} className="text-gray-400" />
+              Top customers — all time
+            </h2>
+            <a
+              href={`/business/${slug}/customers`}
+              className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-0.5"
+            >
+              All customers
+              <ChevronRight size={12} />
+            </a>
+          </div>
+          <div className="space-y-3">
+            {topCustomers.map((c) => {
+              const name = c.display_name_snapshot ?? c.email_snapshot ?? 'Unknown'
+              const maxSpent = topCustomers[0]?.total_spent ?? 1
+              const pct = maxSpent > 0 ? ((c.total_spent ?? 0) / maxSpent) * 100 : 0
+              return (
+                <div key={c.user_id}>
+                  <div className="flex items-center justify-between text-sm mb-1">
+                    <a
+                      href={`/business/${slug}/customers/${c.user_id}`}
+                      className="font-medium text-gray-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400 truncate max-w-[200px]"
+                    >
+                      {name}
+                    </a>
+                    <span className="text-gray-500 dark:text-gray-400 tabular-nums shrink-0 ml-3">
+                      {fmt(c.total_spent ?? 0)} · {c.completed_sale_count} sale{c.completed_sale_count !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-gray-100 dark:bg-neutral-800 overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-indigo-500 dark:bg-indigo-400"
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </section>
+      )}
 
       {/* ── Purchase summary ── */}
       <section className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl p-5">

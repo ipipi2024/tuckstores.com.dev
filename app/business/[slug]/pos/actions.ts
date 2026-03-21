@@ -4,6 +4,72 @@ import { createClient } from '@/lib/supabase/server'
 import { getBusinessContext, isSubscriptionActive } from '@/lib/auth/get-business-context'
 import { canPerform } from '@/lib/auth/permissions'
 
+// ── Customer search ────────────────────────────────────────────────────────────
+
+export type FoundCustomer = {
+  userId: string
+  displayName: string | null
+  email: string | null
+  phone: string | null
+  isKnownCustomer: boolean
+}
+
+export type SearchCustomerResult =
+  | { success: true; customer: FoundCustomer | null }
+  | { success: false; error: string }
+
+/**
+ * Searches for a registered platform user by exact phone or email.
+ * Calls the search_business_customer SECURITY DEFINER RPC which enforces:
+ *   - caller is an active business member
+ *   - exact match only (no fuzzy search)
+ *   - returns minimal identity fields
+ */
+export async function searchCustomerForBusiness(
+  slug: string,
+  query: string
+): Promise<SearchCustomerResult> {
+  const ctx = await getBusinessContext(slug)
+
+  if (!canPerform(ctx.membership.role, 'view_customers')) {
+    return { success: false, error: 'Insufficient permissions' }
+  }
+
+  const trimmed = query.trim()
+  if (!trimmed) {
+    return { success: false, error: 'Enter a phone number or email to search' }
+  }
+
+  const isEmail = trimmed.includes('@')
+  const supabase = await createClient()
+
+  const { data, error } = await supabase.rpc('search_business_customer', {
+    p_business_id: ctx.business.id,
+    p_phone:       isEmail ? null : trimmed,
+    p_email:       isEmail ? trimmed : null,
+  })
+
+  if (error) {
+    return { success: false, error: error.message }
+  }
+
+  if (!data || data.length === 0) {
+    return { success: true, customer: null }
+  }
+
+  const row = data[0]
+  return {
+    success: true,
+    customer: {
+      userId:          row.user_id,
+      displayName:     row.display_name ?? null,
+      email:           row.email ?? null,
+      phone:           row.phone ?? null,
+      isKnownCustomer: row.is_known_customer ?? false,
+    },
+  }
+}
+
 export type SaleItem = {
   product_id: string
   product_name: string
