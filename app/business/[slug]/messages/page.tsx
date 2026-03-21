@@ -7,6 +7,8 @@ import AutoRefresh from '@/app/app/messages/AutoRefresh'
 
 type Props = { params: Promise<{ slug: string }> }
 
+type LastMsg = { conversation_id: string; body: string; sender_type: string }
+
 function fmtTime(dateStr: string): string {
   const d = new Date(dateStr)
   const now = new Date()
@@ -14,6 +16,10 @@ function fmtTime(dateStr: string): string {
   if (diffDays === 0) return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
   if (diffDays < 7) return d.toLocaleDateString(undefined, { weekday: 'short' })
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+}
+
+function truncate(s: string, max = 60): string {
+  return s.length > max ? s.slice(0, max - 1) + '…' : s
 }
 
 export default async function BusinessMessagesPage({ params }: Props) {
@@ -24,25 +30,32 @@ export default async function BusinessMessagesPage({ params }: Props) {
   const supabase = await createClient()
   const { data: convs } = await supabase
     .from('conversations')
-    .select('id, customer_user_id, status, updated_at')
+    .select('id, customer_user_id, status, updated_at, business_last_read_at')
     .eq('business_id', ctx.business.id)
     .order('updated_at', { ascending: false })
     .limit(100) // TODO: paginate for high-volume businesses
 
   const allConvs = convs ?? []
+  const convIds = allConvs.map((c) => c.id)
 
-  // Admin client for customer names — users RLS: select own only
+  // Admin client for customer names and last message previews — users RLS: select
+  // own only, and we need SECURITY DEFINER RPC for efficient previews.
   const customerMap: Record<string, { name: string; email: string }> = {}
-  const customerIds = [...new Set(allConvs.map((c) => c.customer_user_id))]
-  if (customerIds.length > 0) {
+  const lastMsgMap: Record<string, LastMsg> = {}
+
+  if (convIds.length > 0) {
     const admin = createAdminClient()
-    const { data: users } = await admin
-      .from('users')
-      .select('id, full_name, email')
-      .in('id', customerIds)
+    const customerIds = [...new Set(allConvs.map((c) => c.customer_user_id))]
+
+    const [{ data: users }, { data: lastMsgs }] = await Promise.all([
+      admin.from('users').select('id, full_name, email').in('id', customerIds),
+      admin.rpc('get_last_messages_for_conversations', { conv_ids: convIds }),
+    ])
+
     for (const u of users ?? []) {
       customerMap[u.id] = { name: u.full_name ?? u.email ?? 'Unknown', email: u.email }
     }
+    for (const m of (lastMsgs ?? []) as LastMsg[]) lastMsgMap[m.conversation_id] = m
   }
 
   return (
@@ -69,7 +82,18 @@ export default async function BusinessMessagesPage({ params }: Props) {
       ) : (
         <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl divide-y divide-gray-100 dark:divide-neutral-800 overflow-hidden">
           {allConvs.map((conv) => {
+            const unread =
+              !conv.business_last_read_at ||
+              new Date(conv.updated_at) > new Date(conv.business_last_read_at)
+
+            const lastMsg = lastMsgMap[conv.id]
+            const preview = lastMsg
+              ? truncate(lastMsg.sender_type === 'business_member' ? `You: ${lastMsg.body}` : lastMsg.body)
+              : null
+
             const customer = customerMap[conv.customer_user_id]
+            const displayName = customer?.name ?? 'Unknown customer'
+
             return (
               <Link
                 key={conv.id}
@@ -77,25 +101,31 @@ export default async function BusinessMessagesPage({ params }: Props) {
                 className="flex items-center gap-3 px-5 py-4 hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors"
               >
                 <div className="shrink-0 w-9 h-9 rounded-full bg-gray-100 dark:bg-neutral-800 flex items-center justify-center text-sm font-semibold text-gray-600 dark:text-neutral-300">
-                  {(customer?.name ?? '?').charAt(0).toUpperCase()}
+                  {displayName.charAt(0).toUpperCase()}
                 </div>
+
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                    {customer?.name ?? 'Unknown customer'}
+                  <p className={`text-sm truncate ${unread ? 'font-semibold text-gray-900 dark:text-white' : 'font-medium text-gray-900 dark:text-white'}`}>
+                    {displayName}
                   </p>
-                  {customer?.email && (
+                  {preview ? (
+                    <p className={`text-xs truncate ${unread ? 'font-medium text-gray-800 dark:text-neutral-200' : 'text-gray-400 dark:text-neutral-500'}`}>
+                      {preview}
+                    </p>
+                  ) : customer?.email ? (
                     <p className="text-xs text-gray-400 dark:text-neutral-500 truncate">{customer.email}</p>
-                  )}
+                  ) : null}
                 </div>
-                <div className="shrink-0 flex flex-col items-end gap-1">
-                  <span className="text-xs text-gray-400 dark:text-neutral-500">
+
+                <div className="shrink-0 flex flex-col items-end gap-1.5">
+                  <span className={`text-xs ${unread ? 'font-medium text-indigo-600 dark:text-indigo-400' : 'text-gray-400 dark:text-neutral-500'}`}>
                     {fmtTime(conv.updated_at)}
                   </span>
-                  {conv.status !== 'open' && (
-                    <span className="text-xs text-gray-400 dark:text-neutral-500 capitalize">
-                      {conv.status}
-                    </span>
-                  )}
+                  {unread ? (
+                    <span className="w-2 h-2 rounded-full bg-indigo-600 dark:bg-indigo-400" />
+                  ) : conv.status !== 'open' ? (
+                    <span className="text-xs text-gray-400 dark:text-neutral-500 capitalize">{conv.status}</span>
+                  ) : null}
                 </div>
               </Link>
             )
