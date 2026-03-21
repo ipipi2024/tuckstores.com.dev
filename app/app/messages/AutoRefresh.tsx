@@ -11,8 +11,13 @@ import { useRouter } from 'next/navigation'
  * Default interval is 15 s. 5 s was too aggressive for a polling-based approach;
  * migrate to Supabase Realtime subscriptions if lower latency is needed.
  */
-export default function AutoRefresh({ intervalMs = 15000 }: { intervalMs?: number }) {
+export default function AutoRefresh({ intervalMs = 15000, refreshOnMount = false }: { intervalMs?: number; refreshOnMount?: boolean }) {
   const router = useRouter()
+
+  // Refresh immediately on mount so the layout re-fetches server data (e.g. unread counts).
+  useEffect(() => {
+    if (refreshOnMount) router.refresh()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     let interval: ReturnType<typeof setInterval> | null = null

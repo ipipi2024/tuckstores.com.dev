@@ -41,6 +41,15 @@ export default async function BusinessThreadPage({ params }: Props) {
 
   if (!conv) redirect(`/business/${slug}/messages`)
 
+  // Mark any unread new_message notifications for this conversation as read.
+  // RLS (auth.uid() = user_id) scopes this to the current business member automatically.
+  await supabase
+    .from('notifications')
+    .update({ read_at: new Date().toISOString() })
+    .eq('type', 'new_message')
+    .filter('data->>conversation_id', 'eq', id)
+    .is('read_at', null)
+
   // Regular client — conversation_messages RLS: via conversation access
   // Limit to most recent 150 messages. TODO: add older-message paging for long threads.
   const { data: msgs } = await supabase
@@ -80,7 +89,7 @@ export default async function BusinessThreadPage({ params }: Props) {
 
   return (
     <div className="max-w-2xl">
-      <AutoRefresh />
+      <AutoRefresh refreshOnMount />
 
       {/* Header */}
       <div className="flex items-center gap-3 pb-4 mb-1 border-b border-gray-100 dark:border-neutral-800">

@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Home, ShoppingBag, MessageSquare, Store, User } from 'lucide-react'
 
 const NAV = [
@@ -30,22 +30,27 @@ export default function AppNav({
     setCounts({ orders: ordersBadge, messages: messagesBadge })
   }, [ordersBadge, messagesBadge])
 
+  const refresh = useCallback(async () => {
+    try {
+      const res = await fetch('/api/app/badge-counts')
+      if (!res.ok) return
+      const { activeOrders, unreadMessages } = await res.json()
+      setCounts({ orders: activeOrders, messages: unreadMessages })
+    } catch {
+      // ignore network errors
+    }
+  }, [])
+
+  // Refresh immediately on any navigation (e.g. leaving a message thread after reading)
+  useEffect(() => {
+    refresh()
+  }, [pathname, refresh])
+
   // Poll for fresh badge counts every 30s
   useEffect(() => {
-    async function refresh() {
-      try {
-        const res = await fetch('/api/app/badge-counts')
-        if (!res.ok) return
-        const { activeOrders, unreadMessages } = await res.json()
-        setCounts({ orders: activeOrders, messages: unreadMessages })
-      } catch {
-        // ignore network errors
-      }
-    }
-
     const id = setInterval(refresh, POLL_INTERVAL)
     return () => clearInterval(id)
-  }, [])
+  }, [refresh])
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-neutral-900 border-t border-gray-100 dark:border-neutral-800 safe-area-bottom">
