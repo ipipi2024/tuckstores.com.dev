@@ -8,7 +8,7 @@ import {
   removeProductImage,
   reorderProductImages,
 } from '@/app/business/[slug]/products/[id]/imageActions'
-import { Plus, X, Loader2, ArrowLeft, ArrowRight, ImageIcon } from 'lucide-react'
+import { Plus, X, Loader2, ArrowLeft, ArrowRight, ImageIcon, Upload } from 'lucide-react'
 
 type ProductImage = {
   id: string
@@ -27,11 +27,7 @@ const MAX_IMAGES = 5
 const ACCEPT = 'image/jpeg,image/png,image/webp'
 const MAX_MB = 5
 
-export default function ProductImagesEditor({
-  slug,
-  productId,
-  initialImages,
-}: Props) {
+export default function ProductImagesEditor({ slug, productId, initialImages }: Props) {
   const [images, setImages] = useState<ProductImage[]>(
     [...initialImages].sort((a, b) => a.position - b.position)
   )
@@ -77,7 +73,6 @@ export default function ProductImagesEditor({
       const result = await addProductImage(slug, productId, publicUrl, storagePath)
 
       if (result.error) {
-        // Clean up orphaned storage file on DB failure
         await supabase.storage.from('product-images').remove([storagePath])
         setError(result.error)
         return
@@ -127,101 +122,125 @@ export default function ProductImagesEditor({
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
+      {/* Counter + hint */}
       <div className="flex items-center justify-between">
-        <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-          Images
-          <span className="ml-1.5 text-xs font-normal text-gray-400 dark:text-neutral-500">
-            {images.length}/{MAX_IMAGES}
-          </span>
+        <p className="text-xs text-gray-400 dark:text-neutral-500">
+          {images.length} / {MAX_IMAGES} images
+          {images.length > 0 && ' · First image shown as primary'}
         </p>
         <p className="text-xs text-gray-400 dark:text-neutral-500">
-          First image shown as thumbnail. JPEG, PNG, WEBP · max {MAX_MB} MB each.
+          JPEG, PNG, WEBP · max {MAX_MB} MB
         </p>
       </div>
 
-      <div className="flex gap-2 flex-wrap">
-        {images.map((img, i) => (
-          <div
-            key={img.id}
-            className="relative w-24 h-24 rounded-lg overflow-hidden border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-900 group"
-          >
-            <img
-              src={img.url}
-              alt={`Product image ${i + 1}`}
-              className="w-full h-full object-cover"
-            />
+      {/* Empty state — large dashed zone */}
+      {images.length === 0 && (
+        <button
+          type="button"
+          disabled={uploading}
+          onClick={() => inputRef.current?.click()}
+          className="w-full rounded-xl border-2 border-dashed border-gray-200 dark:border-neutral-700 hover:border-indigo-300 dark:hover:border-indigo-700 hover:bg-indigo-50/40 dark:hover:bg-indigo-900/10 disabled:opacity-50 transition-colors py-10 flex flex-col items-center justify-center gap-3 text-gray-400 dark:text-neutral-500"
+        >
+          {uploading ? (
+            <Loader2 size={24} className="animate-spin text-indigo-500" />
+          ) : (
+            <>
+              <div className="p-3 rounded-full bg-gray-100 dark:bg-neutral-800">
+                <ImageIcon size={22} className="text-gray-400 dark:text-neutral-500" />
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Upload product images</p>
+                <p className="text-xs text-gray-400 dark:text-neutral-500 mt-0.5">Click to browse</p>
+              </div>
+            </>
+          )}
+        </button>
+      )}
 
-            {/* Remove button */}
+      {/* Image tiles */}
+      {images.length > 0 && (
+        <div className="flex gap-2 flex-wrap">
+          {images.map((img, i) => (
+            <div
+              key={img.id}
+              className="relative rounded-xl overflow-hidden border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-900 group"
+              style={{ width: i === 0 ? 112 : 80, height: i === 0 ? 112 : 80 }}
+            >
+              <img
+                src={img.url}
+                alt={`Product image ${i + 1}`}
+                className="w-full h-full object-cover"
+              />
+
+              {/* Primary badge */}
+              {i === 0 && (
+                <span className="absolute top-1.5 left-1.5 text-[9px] font-bold uppercase tracking-wide text-white bg-black/60 rounded px-1.5 py-0.5">
+                  Primary
+                </span>
+              )}
+
+              {/* Remove button */}
+              <button
+                type="button"
+                onClick={() => handleRemove(img)}
+                aria-label="Remove image"
+                className="absolute top-1 right-1 w-5 h-5 bg-black/60 hover:bg-black/85 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <X size={11} className="text-white" />
+              </button>
+
+              {/* Reorder buttons */}
+              <div className="absolute bottom-1 right-1 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                {i > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => handleMove(i, 'up')}
+                    aria-label="Move left"
+                    className="w-5 h-5 bg-black/60 hover:bg-black/85 rounded flex items-center justify-center"
+                  >
+                    <ArrowLeft size={10} className="text-white" />
+                  </button>
+                )}
+                {i < images.length - 1 && (
+                  <button
+                    type="button"
+                    onClick={() => handleMove(i, 'down')}
+                    aria-label="Move right"
+                    className="w-5 h-5 bg-black/60 hover:bg-black/85 rounded flex items-center justify-center"
+                  >
+                    <ArrowRight size={10} className="text-white" />
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+
+          {/* Add slot */}
+          {images.length < MAX_IMAGES && (
             <button
               type="button"
-              onClick={() => handleRemove(img)}
-              aria-label="Remove image"
-              className="absolute top-1 right-1 w-5 h-5 bg-black/60 hover:bg-black/80 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+              disabled={uploading}
+              onClick={() => inputRef.current?.click()}
+              className="w-20 h-20 rounded-xl border-2 border-dashed border-gray-200 dark:border-neutral-700 flex flex-col items-center justify-center gap-1 text-gray-400 dark:text-neutral-500 hover:border-indigo-300 dark:hover:border-indigo-700 hover:text-indigo-500 disabled:opacity-50 transition-colors"
             >
-              <X size={11} className="text-white" />
+              {uploading ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                <>
+                  <Upload size={16} />
+                  <span className="text-[10px]">Add</span>
+                </>
+              )}
             </button>
-
-            {/* Position indicator */}
-            <span className="absolute bottom-1 left-1 text-[10px] font-bold text-white bg-black/50 rounded px-1">
-              {i + 1}
-            </span>
-
-            {/* Reorder buttons */}
-            <div className="absolute bottom-1 right-1 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-              {i > 0 && (
-                <button
-                  type="button"
-                  onClick={() => handleMove(i, 'up')}
-                  aria-label="Move left"
-                  className="w-5 h-5 bg-black/60 hover:bg-black/80 rounded flex items-center justify-center"
-                >
-                  <ArrowLeft size={10} className="text-white" />
-                </button>
-              )}
-              {i < images.length - 1 && (
-                <button
-                  type="button"
-                  onClick={() => handleMove(i, 'down')}
-                  aria-label="Move right"
-                  className="w-5 h-5 bg-black/60 hover:bg-black/80 rounded flex items-center justify-center"
-                >
-                  <ArrowRight size={10} className="text-white" />
-                </button>
-              )}
-            </div>
-          </div>
-        ))}
-
-        {/* Add slot */}
-        {images.length < MAX_IMAGES && (
-          <button
-            type="button"
-            disabled={uploading}
-            onClick={() => inputRef.current?.click()}
-            className="w-24 h-24 rounded-lg border-2 border-dashed border-gray-300 dark:border-neutral-700 flex flex-col items-center justify-center gap-1 text-gray-400 dark:text-neutral-500 hover:border-indigo-400 hover:text-indigo-500 disabled:opacity-50 transition-colors"
-          >
-            {uploading ? (
-              <Loader2 size={18} className="animate-spin" />
-            ) : (
-              <>
-                <Plus size={18} />
-                <span className="text-[10px]">Add photo</span>
-              </>
-            )}
-          </button>
-        )}
-
-        {/* Empty state placeholder */}
-        {images.length === 0 && !uploading && (
-          <p className="text-xs text-gray-400 dark:text-neutral-500 self-center ml-2">
-            No images yet — click &ldquo;Add photo&rdquo; to get started.
-          </p>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
       {error && (
-        <p className="text-xs text-red-500 dark:text-red-400">{error}</p>
+        <div className="flex items-center gap-2 text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2">
+          {error}
+        </div>
       )}
 
       <input
