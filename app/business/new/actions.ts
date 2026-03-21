@@ -42,9 +42,15 @@ export async function createBusiness(formData: FormData) {
   const name = (formData.get('name') as string | null)?.trim()
   const description = (formData.get('description') as string | null)?.trim() || null
   const currency = (formData.get('currency_code') as string | null)?.trim() || 'USD'
+  const countryCode = (formData.get('country_code') as string | null)?.trim().toUpperCase() || null
+  const city = (formData.get('city') as string | null)?.trim() || null
 
   if (!name || name.length < 2) {
     redirect('/business/new?error=Business+name+must+be+at+least+2+characters')
+  }
+
+  if (!countryCode) {
+    redirect('/business/new?error=Please+select+a+country')
   }
 
   const admin = createAdminClient()
@@ -83,6 +89,8 @@ export async function createBusiness(formData: FormData) {
       slug,
       description,
       currency_code: currency,
+      country_code: countryCode,
+      city,
       status: 'active',
     })
     .select('id, slug')

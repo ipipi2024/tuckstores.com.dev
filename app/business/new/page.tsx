@@ -4,6 +4,42 @@ import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import SubmitButton from '@/components/ui/SubmitButton'
 
+const COUNTRIES = [
+  { code: 'AU', name: 'Australia' },
+  { code: 'BD', name: 'Bangladesh' },
+  { code: 'BR', name: 'Brazil' },
+  { code: 'CA', name: 'Canada' },
+  { code: 'CN', name: 'China' },
+  { code: 'EG', name: 'Egypt' },
+  { code: 'ET', name: 'Ethiopia' },
+  { code: 'FR', name: 'France' },
+  { code: 'DE', name: 'Germany' },
+  { code: 'GH', name: 'Ghana' },
+  { code: 'IN', name: 'India' },
+  { code: 'ID', name: 'Indonesia' },
+  { code: 'JP', name: 'Japan' },
+  { code: 'KE', name: 'Kenya' },
+  { code: 'MY', name: 'Malaysia' },
+  { code: 'MX', name: 'Mexico' },
+  { code: 'NL', name: 'Netherlands' },
+  { code: 'NZ', name: 'New Zealand' },
+  { code: 'NG', name: 'Nigeria' },
+  { code: 'PK', name: 'Pakistan' },
+  { code: 'PG', name: 'Papua New Guinea' },
+  { code: 'PH', name: 'Philippines' },
+  { code: 'RW', name: 'Rwanda' },
+  { code: 'SA', name: 'Saudi Arabia' },
+  { code: 'SG', name: 'Singapore' },
+  { code: 'ZA', name: 'South Africa' },
+  { code: 'ES', name: 'Spain' },
+  { code: 'TZ', name: 'Tanzania' },
+  { code: 'UG', name: 'Uganda' },
+  { code: 'AE', name: 'United Arab Emirates' },
+  { code: 'GB', name: 'United Kingdom' },
+  { code: 'US', name: 'United States' },
+  { code: 'ZW', name: 'Zimbabwe' },
+]
+
 export default async function NewBusinessPage({
   searchParams,
 }: {
@@ -69,6 +105,43 @@ export default async function NewBusinessPage({
               rows={2}
               placeholder="What does your business sell?"
               className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="country_code"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            >
+              Country <span className="text-red-500">*</span>
+            </label>
+            <select
+              id="country_code"
+              name="country_code"
+              required
+              defaultValue=""
+              className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="" disabled>Select a country…</option>
+              {COUNTRIES.map((c) => (
+                <option key={c.code} value={c.code}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label
+              htmlFor="city"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            >
+              City <span className="text-gray-400">(optional)</span>
+            </label>
+            <input
+              id="city"
+              name="city"
+              type="text"
+              placeholder="e.g. Port Moresby"
+              className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
 

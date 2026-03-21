@@ -37,6 +37,42 @@ const TIMEZONES = [
   'Pacific/Auckland',
 ]
 
+const COUNTRIES = [
+  { code: 'AU', name: 'Australia' },
+  { code: 'BD', name: 'Bangladesh' },
+  { code: 'BR', name: 'Brazil' },
+  { code: 'CA', name: 'Canada' },
+  { code: 'CN', name: 'China' },
+  { code: 'EG', name: 'Egypt' },
+  { code: 'ET', name: 'Ethiopia' },
+  { code: 'FR', name: 'France' },
+  { code: 'DE', name: 'Germany' },
+  { code: 'GH', name: 'Ghana' },
+  { code: 'IN', name: 'India' },
+  { code: 'ID', name: 'Indonesia' },
+  { code: 'JP', name: 'Japan' },
+  { code: 'KE', name: 'Kenya' },
+  { code: 'MY', name: 'Malaysia' },
+  { code: 'MX', name: 'Mexico' },
+  { code: 'NL', name: 'Netherlands' },
+  { code: 'NZ', name: 'New Zealand' },
+  { code: 'NG', name: 'Nigeria' },
+  { code: 'PK', name: 'Pakistan' },
+  { code: 'PG', name: 'Papua New Guinea' },
+  { code: 'PH', name: 'Philippines' },
+  { code: 'RW', name: 'Rwanda' },
+  { code: 'SA', name: 'Saudi Arabia' },
+  { code: 'SG', name: 'Singapore' },
+  { code: 'ZA', name: 'South Africa' },
+  { code: 'ES', name: 'Spain' },
+  { code: 'TZ', name: 'Tanzania' },
+  { code: 'UG', name: 'Uganda' },
+  { code: 'AE', name: 'United Arab Emirates' },
+  { code: 'GB', name: 'United Kingdom' },
+  { code: 'US', name: 'United States' },
+  { code: 'ZW', name: 'Zimbabwe' },
+]
+
 // Common ISO 4217 currency codes
 const CURRENCIES = [
   { code: 'USD', label: 'USD — US Dollar' },
@@ -69,7 +105,7 @@ export default async function SettingsPage({ params, searchParams }: Props) {
   const supabase = await createClient()
   const { data: biz } = await supabase
     .from('businesses')
-    .select('id, name, slug, description, phone, email, currency_code, country_code, timezone, logo_url, logo_path, cover_image_url, cover_image_path, catchline')
+    .select('id, name, slug, description, phone, email, currency_code, country_code, city, timezone, logo_url, logo_path, cover_image_url, cover_image_path, catchline')
     .eq('id', ctx.business.id)
     .single()
 
@@ -226,21 +262,43 @@ export default async function SettingsPage({ params, searchParams }: Props) {
           </select>
         </div>
 
+        {/* Country */}
+        <div>
+          <label className={labelCls}>Country <span className="text-red-500">*</span></label>
+          <select
+            name="country_code"
+            required
+            defaultValue={biz.country_code}
+            className={inputCls}
+          >
+            {COUNTRIES.map((c) => (
+              <option key={c.code} value={c.code}>{c.name}</option>
+            ))}
+            {!COUNTRIES.some((c) => c.code === biz.country_code) && (
+              <option value={biz.country_code}>{biz.country_code}</option>
+            )}
+          </select>
+        </div>
+
+        {/* City */}
+        <div>
+          <label className={labelCls}>City <span className="text-gray-400 font-normal">(optional)</span></label>
+          <input
+            name="city"
+            type="text"
+            defaultValue={biz.city ?? ''}
+            placeholder="e.g. Port Moresby"
+            className={inputCls}
+          />
+        </div>
+
         {/* Read-only fields */}
         <div className="pt-2 border-t border-gray-100 dark:border-neutral-800 space-y-3">
           <p className="text-xs text-gray-400 dark:text-neutral-500 font-medium uppercase tracking-wide">Read-only</p>
-          {[
-            { label: 'Country', value: biz.country_code },
-            { label: 'Status',  value: ctx.business.status },
-          ].map(({ label, value }) => (
-            <div key={label} className="flex items-center justify-between">
-              <span className="text-sm text-gray-500 dark:text-gray-400">{label}</span>
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300 capitalize">{value}</span>
-            </div>
-          ))}
-          <p className="text-xs text-gray-400 dark:text-neutral-500">
-            To change country or status, contact support.
-          </p>
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-gray-500 dark:text-gray-400">Status</span>
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300 capitalize">{ctx.business.status}</span>
+          </div>
         </div>
 
         <div className="pt-1">

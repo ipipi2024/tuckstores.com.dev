@@ -30,6 +30,10 @@ export async function updateBusinessSettings(slug: string, formData: FormData) {
     ? (formData.get('currency_code') as string | null)?.trim().toUpperCase() ?? ctx.business.currency_code
     : ctx.business.currency_code
 
+  const countryCode = isAdmin
+    ? (formData.get('country_code') as string | null)?.trim().toUpperCase() ?? ctx.business.country_code
+    : ctx.business.country_code
+
   const timezone = isAdmin
     ? (formData.get('timezone') as string | null)?.trim() ?? ctx.business.timezone
     : ctx.business.timezone
@@ -38,7 +42,10 @@ export async function updateBusinessSettings(slug: string, formData: FormData) {
     ? (formData.get('slug') as string | null)?.trim().toLowerCase() ?? ctx.business.slug
     : ctx.business.slug
 
+  const city = (formData.get('city') as string | null)?.trim() || null
+
   if (!currencyCode) redirect(`/business/${slug}/settings?error=Currency+code+is+required`)
+  if (!countryCode)  redirect(`/business/${slug}/settings?error=Country+is+required`)
   if (!timezone)     redirect(`/business/${slug}/settings?error=Timezone+is+required`)
   if (!newSlug)      redirect(`/business/${slug}/settings?error=Slug+is+required`)
 
@@ -49,7 +56,7 @@ export async function updateBusinessSettings(slug: string, formData: FormData) {
   const admin = createAdminClient()
   const { error } = await admin
     .from('businesses')
-    .update({ name, description, phone, email, currency_code: currencyCode, timezone, slug: newSlug })
+    .update({ name, description, phone, email, currency_code: currencyCode, country_code: countryCode, city, timezone, slug: newSlug })
     .eq('id', ctx.business.id)
 
   if (error) {
