@@ -17,6 +17,7 @@ import {
   Contact,
   MessageSquare,
   Megaphone,
+  Bell,
   Settings2,
   CreditCard,
   Menu,
@@ -29,6 +30,7 @@ import {
 } from 'lucide-react'
 import ThemeToggle from './ThemeToggle'
 import NotificationBell from './NotificationBell'
+import { useNotifications } from './NotificationProvider'
 import { signOut } from '@/app/auth/actions'
 import { isAtLeastRole } from '@/lib/auth/permissions'
 import SubmitButton from './ui/SubmitButton'
@@ -40,7 +42,7 @@ type NavItem = {
   icon: React.ElementType
   exact?: boolean
   minRole: MembershipRole
-  badge?: 'messages'
+  badge?: 'messages' | 'notifications'
 }
 
 const ALL_NAV: NavItem[] = [
@@ -56,6 +58,7 @@ const ALL_NAV: NavItem[] = [
   { label: 'Suppliers',  path: '/suppliers',   icon: Truck,                      minRole: 'inventory_clerk' },
   { label: 'Messages',       path: '/messages',       icon: MessageSquare, minRole: 'staff',   badge: 'messages' as const },
   { label: 'Announcements', path: '/announcements', icon: Megaphone,     minRole: 'manager' },
+  { label: 'Notifications', path: '/notifications', icon: Bell,          minRole: 'staff',   badge: 'notifications' as const },
   { label: 'Staff',         path: '/staff',         icon: Users,         minRole: 'admin' },
   { label: 'Settings',   path: '/settings',    icon: Settings2,                  minRole: 'admin' },
   { label: 'Billing',    path: '/billing',     icon: CreditCard,                 minRole: 'owner' },
@@ -93,7 +96,8 @@ export default function BusinessNav({ slug, businessName, role, messagesBadge = 
     return () => { document.body.classList.remove('sidebar-collapsed') }
   }, [collapsed])
 
-  const badgeCounts: Record<string, number> = { messages: messagesBadge }
+  const { unreadCount: notificationsCount } = useNotifications()
+  const badgeCounts: Record<string, number> = { messages: messagesBadge, notifications: notificationsCount }
 
   const NavLinks = ({ mobile = false }: { mobile?: boolean }) => (
     <>
