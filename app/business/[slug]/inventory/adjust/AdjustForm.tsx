@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useFormStatus } from 'react-dom'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { Plus, Minus, Loader2, AlertCircle } from 'lucide-react'
+import { Plus, Minus, Loader2, AlertCircle, AlertTriangle, ArrowRight } from 'lucide-react'
 
 const REASONS = [
   'Opening stock',
@@ -17,7 +17,26 @@ const REASONS = [
   'Other',
 ]
 
-type Product = { id: string; name: string; sku: string | null; measurement_type: string | null; base_unit: string | null }
+type Product = {
+  id: string
+  name: string
+  sku: string | null
+  measurement_type: string | null
+  base_unit: string | null
+}
+
+type Props = {
+  products: Product[]
+  action: (formData: FormData) => Promise<void>
+  error?: string
+  stockMap: Record<string, number>
+  defaultProductId?: string
+}
+
+function fmtStock(qty: number, baseUnit: string): string {
+  if (baseUnit === 'unit') return String(Math.round(qty))
+  return `${Number(qty).toFixed(3)} ${baseUnit}`
+}
 
 function SubmitButton({ direction }: { direction: 'in' | 'out' }) {
   const { pending } = useFormStatus()
@@ -42,21 +61,26 @@ function SubmitButton({ direction }: { direction: 'in' | 'out' }) {
   )
 }
 
-type Props = {
-  products: Product[]
-  action: (formData: FormData) => Promise<void>
-  error?: string
-}
-
-export default function AdjustForm({ products, action, error }: Props) {
+export default function AdjustForm({ products, action, error, stockMap, defaultProductId }: Props) {
   const params = useParams<{ slug: string }>()
   const [direction, setDirection] = useState<'in' | 'out'>('in')
-  const [selectedProductId, setSelectedProductId] = useState('')
+  const [selectedProductId, setSelectedProductId] = useState(defaultProductId ?? '')
+  const [quantityRaw, setQuantityRaw] = useState('')
 
   const selectedProduct = products.find((p) => p.id === selectedProductId)
   const isMeasurable = selectedProduct && (selectedProduct.measurement_type ?? 'unit') !== 'unit'
   const baseUnit = selectedProduct?.base_unit ?? 'unit'
   const qtyLabel = isMeasurable ? `Quantity (${baseUnit})` : 'Quantity'
+
+  const currentStock = selectedProductId ? (stockMap[selectedProductId] ?? 0) : null
+  const parsedQty = parseFloat(quantityRaw)
+  const hasQty = !isNaN(parsedQty) && parsedQty > 0
+
+  const projectedStock = currentStock !== null && hasQty
+    ? currentStock + (direction === 'in' ? parsedQty : -parsedQty)
+    : null
+
+  const isOverdraw = direction === 'out' && currentStock !== null && hasQty && parsedQty > currentStock
 
   return (
     <form action={action} className="space-y-5">
@@ -120,7 +144,7 @@ export default function AdjustForm({ products, action, error }: Props) {
             name="product_id"
             required
             value={selectedProductId}
-            onChange={(e) => setSelectedProductId(e.target.value)}
+            onChange={(e) => { setSelectedProductId(e.target.value); setQuantityRaw('') }}
             className="w-full px-3 py-2.5 rounded-xl border border-gray-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
             <option value="" disabled>Select a product…</option>
@@ -132,6 +156,50 @@ export default function AdjustForm({ products, action, error }: Props) {
           </select>
         )}
       </div>
+
+      {/* Current stock info — shown after product selection */}
+      {selectedProduct && currentStock !== null && (
+        <div className="rounded-xl bg-gray-50 dark:bg-neutral-800/50 border border-gray-200 dark:border-neutral-700 px-4 py-3 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs text-gray-500 dark:text-neutral-400 font-medium uppercase tracking-wide">Current stock</p>
+            <p className={`text-lg font-bold tabular-nums mt-0.5 ${
+              currentStock <= 0
+                ? 'text-red-600 dark:text-red-400'
+                : currentStock <= 5
+                ? 'text-amber-600 dark:text-amber-400'
+                : 'text-gray-800 dark:text-gray-100'
+            }`}>
+              {fmtStock(currentStock, baseUnit)}
+            </p>
+          </div>
+
+          {projectedStock !== null && (
+            <div className="flex items-center gap-3">
+              <ArrowRight size={16} className="text-gray-300 dark:text-neutral-600 flex-shrink-0" />
+              <div>
+                <p className="text-xs text-gray-500 dark:text-neutral-400 font-medium uppercase tracking-wide">After adjustment</p>
+                <p className={`text-lg font-bold tabular-nums mt-0.5 ${
+                  projectedStock <= 0
+                    ? 'text-red-600 dark:text-red-400'
+                    : projectedStock <= 5
+                    ? 'text-amber-600 dark:text-amber-400'
+                    : 'text-green-600 dark:text-green-400'
+                }`}>
+                  {fmtStock(projectedStock, baseUnit)}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Overdraw warning */}
+      {isOverdraw && (
+        <div className="flex items-start gap-2 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
+          <AlertTriangle size={15} className="flex-shrink-0 mt-0.5" />
+          This will push stock negative. Make sure this is intentional.
+        </div>
+      )}
 
       {/* Quantity */}
       <div>
@@ -145,7 +213,9 @@ export default function AdjustForm({ products, action, error }: Props) {
           min={isMeasurable ? '0.001' : '1'}
           step={isMeasurable ? '0.001' : '1'}
           required
-          placeholder={isMeasurable ? `e.g. 2.500` : 'e.g. 10'}
+          value={quantityRaw}
+          onChange={(e) => setQuantityRaw(e.target.value)}
+          placeholder={isMeasurable ? 'e.g. 2.500' : 'e.g. 10'}
           className="w-full px-3 py-2.5 rounded-xl border border-gray-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
         />
       </div>
@@ -182,10 +252,10 @@ export default function AdjustForm({ products, action, error }: Props) {
         />
       </div>
 
-      {/* Info callout */}
+      {/* Ledger notice */}
       <div className="flex items-start gap-2 rounded-xl bg-gray-50 dark:bg-neutral-800/60 border border-gray-200 dark:border-neutral-700 px-4 py-3 text-xs text-gray-500 dark:text-neutral-400">
         <AlertCircle size={13} className="flex-shrink-0 mt-0.5" />
-        This creates an inventory adjustment entry and affects current stock.
+        This creates an inventory adjustment entry and affects current stock immediately.
       </div>
 
       {/* Actions */}

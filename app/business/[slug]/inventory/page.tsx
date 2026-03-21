@@ -2,11 +2,24 @@ import { getBusinessContext } from '@/lib/auth/get-business-context'
 import { canPerform } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
-import { Package, AlertCircle, CheckCircle2, SlidersHorizontal } from 'lucide-react'
+import {
+  Package,
+  AlertCircle,
+  CheckCircle2,
+  SlidersHorizontal,
+  TrendingDown,
+  XCircle,
+} from 'lucide-react'
+import InventoryClient, { type StockEntry } from './InventoryClient'
 
 type Props = {
   params: Promise<{ slug: string }>
   searchParams: Promise<{ error?: string; success?: string }>
+}
+
+function fmtStock(qty: number, baseUnit: string): string {
+  if (baseUnit === 'unit') return String(Math.round(qty))
+  return `${Number(qty).toFixed(3)} ${baseUnit}`
 }
 
 export default async function InventoryPage({ params, searchParams }: Props) {
@@ -17,37 +30,22 @@ export default async function InventoryPage({ params, searchParams }: Props) {
 
   const canAdjust = canPerform(ctx.membership.role, 'adjust_inventory')
 
-  // Join product_stock view with products to get names
-  const { data: stockRows } = await supabase
-    .from('product_stock')
-    .select(`
-      product_id, stock_quantity,
-      products ( name, sku, is_active, measurement_type, base_unit, product_categories ( name ) )
-    `)
-    .eq('business_id', ctx.business.id)
-    .order('stock_quantity', { ascending: true })
-
-  // Also fetch products with zero / no stock row
-  const { data: allProducts } = await supabase
-    .from('products')
-    .select('id, name, sku, is_active, measurement_type, base_unit, product_categories ( name )')
-    .eq('business_id', ctx.business.id)
-    .eq('is_active', true)
-    .order('name')
-
-  type StockEntry = {
-    product_id: string
-    name: string
-    sku: string | null
-    category: string | null
-    stock_quantity: number
-    base_unit: string
-  }
-
-  function fmtStock(qty: number, baseUnit: string): string {
-    if (baseUnit === 'unit') return String(Math.round(qty))
-    return `${Number(qty).toFixed(3)} ${baseUnit}`
-  }
+  const [{ data: stockRows }, { data: allProducts }] = await Promise.all([
+    supabase
+      .from('product_stock')
+      .select(`
+        product_id, stock_quantity,
+        products ( name, sku, is_active, measurement_type, base_unit, product_categories ( name ) )
+      `)
+      .eq('business_id', ctx.business.id)
+      .order('stock_quantity', { ascending: true }),
+    supabase
+      .from('products')
+      .select('id, name, sku, is_active, measurement_type, base_unit, product_categories ( name )')
+      .eq('business_id', ctx.business.id)
+      .eq('is_active', true)
+      .order('name'),
+  ])
 
   const stockMap = new Map<string, StockEntry>()
 
@@ -85,37 +83,29 @@ export default async function InventoryPage({ params, searchParams }: Props) {
 
   const entries = Array.from(stockMap.values()).sort((a, b) => a.stock_quantity - b.stock_quantity)
 
+  const total      = entries.length
   const outOfStock = entries.filter((e) => e.stock_quantity <= 0).length
   const lowStock   = entries.filter((e) => e.stock_quantity > 0 && e.stock_quantity <= 5).length
+  const inStock    = entries.filter((e) => e.stock_quantity > 5).length
 
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
+      <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
             <Package size={20} />
             Inventory
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-            {entries.length} product{entries.length !== 1 ? 's' : ''}
-            {outOfStock > 0 && (
-              <span className="ml-2 text-red-600 dark:text-red-400 font-medium">
-                · {outOfStock} out of stock
-              </span>
-            )}
-            {lowStock > 0 && (
-              <span className="ml-2 text-amber-600 dark:text-amber-400 font-medium">
-                · {lowStock} low
-              </span>
-            )}
+            Track and manage your product stock levels.
           </p>
         </div>
 
         {canAdjust && (
           <Link
             href={`/business/${slug}/inventory/adjust`}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors"
           >
             <SlidersHorizontal size={14} />
             Adjust inventory
@@ -123,13 +113,13 @@ export default async function InventoryPage({ params, searchParams }: Props) {
         )}
       </div>
 
+      {/* Feedback banners */}
       {error && (
         <div className="flex items-center gap-2 rounded-lg bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 px-4 py-3 text-sm text-red-700 dark:text-red-300">
           <AlertCircle size={15} className="flex-shrink-0" />
           {decodeURIComponent(error)}
         </div>
       )}
-
       {success && (
         <div className="flex items-center gap-2 rounded-lg bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 px-4 py-3 text-sm text-green-700 dark:text-green-300">
           <CheckCircle2 size={15} className="flex-shrink-0" />
@@ -137,76 +127,57 @@ export default async function InventoryPage({ params, searchParams }: Props) {
         </div>
       )}
 
-      <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl overflow-hidden">
-        {entries.length === 0 ? (
-          <div className="px-6 py-16 text-center">
-            <Package size={32} className="mx-auto text-gray-300 dark:text-neutral-600 mb-3" />
-            <p className="text-sm text-gray-500 dark:text-gray-400">No inventory data yet.</p>
-            <p className="text-xs text-gray-400 dark:text-neutral-500 mt-1">
-              Add stock via a purchase or use the adjust inventory button above.
-            </p>
-            <div className="mt-3 flex items-center justify-center gap-3 flex-wrap">
-              <Link
-                href={`/business/${slug}/purchases/new`}
-                className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline"
-              >
-                Record a purchase
-              </Link>
-              {canAdjust && (
-                <>
-                  <span className="text-gray-300 dark:text-neutral-600">·</span>
-                  <Link
-                    href={`/business/${slug}/inventory/adjust`}
-                    className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline"
-                  >
-                    Adjust inventory
-                  </Link>
-                </>
-              )}
+      {/* Stat cards */}
+      {total > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl px-4 py-3.5 flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 flex-shrink-0">
+              <Package size={15} className="text-indigo-500 dark:text-indigo-400" />
+            </div>
+            <div>
+              <p className="text-xl font-bold text-gray-900 dark:text-white tabular-nums leading-none">{total}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Total products</p>
             </div>
           </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-100 dark:border-neutral-800 text-left">
-                  <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Product</th>
-                  <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400 hidden sm:table-cell">Category</th>
-                  <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400 text-right">Stock</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50 dark:divide-neutral-800">
-                {entries.map((entry) => (
-                  <tr key={entry.product_id} className="hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition-colors">
-                    <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">
-                      {entry.name}
-                      {entry.sku && (
-                        <span className="ml-2 text-xs text-gray-400 dark:text-neutral-500 font-normal">
-                          #{entry.sku}
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-gray-500 dark:text-gray-400 hidden sm:table-cell">
-                      {entry.category ?? <span className="text-gray-300 dark:text-neutral-600">—</span>}
-                    </td>
-                    <td className="px-4 py-3 text-right tabular-nums">
-                      <span className={
-                        entry.stock_quantity <= 0
-                          ? 'text-red-600 dark:text-red-400 font-medium'
-                          : entry.stock_quantity <= 5
-                          ? 'text-amber-600 dark:text-amber-400 font-medium'
-                          : 'text-gray-700 dark:text-gray-300'
-                      }>
-                        {fmtStock(entry.stock_quantity, entry.base_unit)}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+
+          <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl px-4 py-3.5 flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-green-50 dark:bg-green-900/20 flex-shrink-0">
+              <CheckCircle2 size={15} className="text-green-500 dark:text-green-400" />
+            </div>
+            <div>
+              <p className="text-xl font-bold text-gray-900 dark:text-white tabular-nums leading-none">{inStock}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">In stock</p>
+            </div>
           </div>
-        )}
-      </div>
+
+          <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl px-4 py-3.5 flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 flex-shrink-0">
+              <TrendingDown size={15} className="text-amber-500 dark:text-amber-400" />
+            </div>
+            <div>
+              <p className={`text-xl font-bold tabular-nums leading-none ${lowStock > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-gray-900 dark:text-white'}`}>
+                {lowStock}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Low stock</p>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl px-4 py-3.5 flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-red-50 dark:bg-red-900/20 flex-shrink-0">
+              <XCircle size={15} className="text-red-500 dark:text-red-400" />
+            </div>
+            <div>
+              <p className={`text-xl font-bold tabular-nums leading-none ${outOfStock > 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-white'}`}>
+                {outOfStock}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Out of stock</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Inventory list */}
+      <InventoryClient entries={entries} slug={slug} canAdjust={canAdjust} />
     </div>
   )
 }
