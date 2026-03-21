@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { Plus, Trash2 } from 'lucide-react'
 import Spinner from '@/components/ui/Spinner'
+import SupplierPicker from './SupplierPicker'
 
 type Product = { id: string; name: string; cost_price_default: number | null; measurement_type: string | null; base_unit: string | null }
 type Supplier = { id: string; name: string }
@@ -112,14 +113,7 @@ export default function NewPurchaseForm({ action, products, suppliers, currencyC
           </div>
           <div>
             <label className={labelCls}>Supplier</label>
-            <select name="supplier_id" className={inputCls}>
-              <option value="">— None —</option>
-              {suppliers.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
+            <SupplierPicker suppliers={suppliers} />
           </div>
         </div>
         <div>

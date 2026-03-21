@@ -36,10 +36,25 @@ export async function createPurchase(slug: string, formData: FormData) {
   const purchaseDateRaw = formData.get('purchase_date') as string | null
   const purchaseDate = purchaseDateRaw?.trim() || new Date().toISOString().split('T')[0]
 
-  const supplierId = (formData.get('supplier_id') as string | null)?.trim() || null
+  let supplierId = (formData.get('supplier_id') as string | null)?.trim() || null
+  const newSupplierName = (formData.get('new_supplier_name') as string | null)?.trim() || null
   const notes = (formData.get('notes') as string | null)?.trim() || null
 
   const supabase = await createClient()
+
+  if (newSupplierName) {
+    const { data: newSupplier, error: supplierError } = await supabase
+      .from('suppliers')
+      .insert({ business_id: ctx.business.id, name: newSupplierName })
+      .select('id')
+      .single()
+
+    if (supplierError) {
+      redirect(`/business/${slug}/purchases/new?error=${encodeURIComponent(supplierError.message)}`)
+    }
+
+    supplierId = newSupplier.id
+  }
 
   const { data: purchaseId, error } = await supabase.rpc('create_purchase', {
     p_business_id: ctx.business.id,
