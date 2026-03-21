@@ -11,10 +11,10 @@ import {
   type Cart,
 } from '@/lib/cart/store'
 
-function fmtCurrency(amount: number) {
+function fmtCurrency(amount: number, currency: string) {
   return new Intl.NumberFormat(undefined, {
     style: 'currency',
-    currency: 'USD',
+    currency,
     minimumFractionDigits: 2,
   }).format(amount)
 }
@@ -55,6 +55,7 @@ export default function CartPage() {
     )
   }
 
+  const currency = cart.currencyCode ?? 'USD'
   const subtotal = getSubtotal(cart)
 
   return (
@@ -71,7 +72,7 @@ export default function CartPage() {
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{item.productName}</p>
               <p className="text-xs text-gray-400 dark:text-neutral-500 mt-0.5">
-                {fmtCurrency(item.unitPrice)} each
+                {fmtCurrency(item.unitPrice, currency)} each
               </p>
             </div>
 
@@ -97,7 +98,7 @@ export default function CartPage() {
             </div>
 
             <span className="text-sm font-semibold text-gray-900 dark:text-white tabular-nums w-16 text-right">
-              {fmtCurrency(item.unitPrice * item.quantity)}
+              {fmtCurrency(item.unitPrice * item.quantity, currency)}
             </span>
 
             <button
@@ -115,7 +116,7 @@ export default function CartPage() {
       <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl p-4 space-y-3">
         <div className="flex items-center justify-between text-sm">
           <span className="text-gray-500 dark:text-gray-400">Subtotal</span>
-          <span className="font-semibold text-gray-900 dark:text-white tabular-nums">{fmtCurrency(subtotal)}</span>
+          <span className="font-semibold text-gray-900 dark:text-white tabular-nums">{fmtCurrency(subtotal, currency)}</span>
         </div>
         <p className="text-xs text-gray-400 dark:text-neutral-500">
           Delivery fee (if any) is calculated at checkout.

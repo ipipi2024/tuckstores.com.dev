@@ -12,6 +12,7 @@ type Props = {
   businessId: string
   businessSlug: string
   businessName: string
+  currencyCode: string
   productId: string
   productName: string
   unitPrice: number
@@ -22,6 +23,7 @@ export default function AddToCartButton({
   businessId,
   businessSlug,
   businessName,
+  currencyCode,
   productId,
   productName,
   unitPrice,
@@ -31,7 +33,7 @@ export default function AddToCartButton({
   const [conflict, setConflict] = useState<Cart | null>(null)
 
   function handleAdd() {
-    const result = addToCart(businessId, businessSlug, businessName, {
+    const result = addToCart(businessId, businessSlug, businessName, currencyCode, {
       productId,
       productName,
       unitPrice,
@@ -51,7 +53,7 @@ export default function AddToCartButton({
   }
 
   function handleConfirmSwitch() {
-    clearCartAndAdd(businessId, businessSlug, businessName, {
+    clearCartAndAdd(businessId, businessSlug, businessName, currencyCode, {
       productId,
       productName,
       unitPrice,

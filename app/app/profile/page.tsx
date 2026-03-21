@@ -1,10 +1,11 @@
 import { getAuthUser } from '@/lib/auth/get-user'
 import { createClient } from '@/lib/supabase/server'
-import { AlertCircle, CheckCircle2, LogOut } from 'lucide-react'
+import { AlertCircle, CheckCircle2, LogOut, MessageSquare, Bell, ChevronRight, Megaphone, Receipt } from 'lucide-react'
 import { updateProfile } from './actions'
 import { signOut } from '@/app/auth/actions'
 import SubmitButton from '@/components/ui/SubmitButton'
 import AvatarEditor from '@/components/AvatarEditor'
+import Link from 'next/link'
 
 type Props = {
   searchParams: Promise<{ error?: string; success?: string }>
@@ -101,6 +102,50 @@ export default async function ProfilePage({ searchParams }: Props) {
           Save changes
         </SubmitButton>
       </form>
+
+      {/* Quick links */}
+      <div className="border-t border-gray-100 dark:border-neutral-800 pt-4 space-y-1">
+        <Link
+          href="/app/messages"
+          className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors"
+        >
+          <div className="flex items-center gap-2.5 text-sm text-gray-700 dark:text-gray-300">
+            <MessageSquare size={16} className="text-gray-400" />
+            Messages
+          </div>
+          <ChevronRight size={15} className="text-gray-300 dark:text-neutral-600" />
+        </Link>
+        <Link
+          href="/app/notifications"
+          className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors"
+        >
+          <div className="flex items-center gap-2.5 text-sm text-gray-700 dark:text-gray-300">
+            <Bell size={16} className="text-gray-400" />
+            Notifications
+          </div>
+          <ChevronRight size={15} className="text-gray-300 dark:text-neutral-600" />
+        </Link>
+        <Link
+          href="/app/announcements"
+          className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors"
+        >
+          <div className="flex items-center gap-2.5 text-sm text-gray-700 dark:text-gray-300">
+            <Megaphone size={16} className="text-gray-400" />
+            Announcements
+          </div>
+          <ChevronRight size={15} className="text-gray-300 dark:text-neutral-600" />
+        </Link>
+        <Link
+          href="/app/receipts"
+          className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors"
+        >
+          <div className="flex items-center gap-2.5 text-sm text-gray-700 dark:text-gray-300">
+            <Receipt size={16} className="text-gray-400" />
+            Receipts
+          </div>
+          <ChevronRight size={15} className="text-gray-300 dark:text-neutral-600" />
+        </Link>
+      </div>
 
       {/* Sign out */}
       <div className="border-t border-gray-100 dark:border-neutral-800 pt-4">

@@ -96,7 +96,7 @@ export default async function PublicBusinessPage({ params }: Props) {
           className="inline-flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
         >
           <ArrowLeft size={14} />
-          Businesses
+          Stores
         </Link>
 
         {/* Cover photo */}
@@ -224,6 +224,7 @@ export default async function PublicBusinessPage({ params }: Props) {
                         businessId={biz.id}
                         businessSlug={biz.slug}
                         businessName={biz.name}
+                        currencyCode={currency}
                         productId={p.id}
                         productName={p.name}
                         unitPrice={p.selling_price}

@@ -22,6 +22,8 @@ export type Cart = {
   businessId: string
   businessSlug: string
   businessName: string
+  /** ISO 4217 currency code for the business — stored so cart/checkout can format prices correctly */
+  currencyCode?: string
   items: CartItem[]
 }
 
@@ -65,6 +67,7 @@ export function addToCart(
   businessId: string,
   businessSlug: string,
   businessName: string,
+  currencyCode: string,
   product: Omit<CartItem, 'quantity'>,
   quantity = 1
 ): { conflict: true; existing: Cart } | { conflict: false } {
@@ -74,7 +77,7 @@ export function addToCart(
     return { conflict: true, existing: cart }
   }
 
-  const base: Cart = cart ?? { businessId, businessSlug, businessName, items: [] }
+  const base: Cart = cart ?? { businessId, businessSlug, businessName, currencyCode, items: [] }
 
   const existing = base.items.find((i) => i.productId === product.productId)
   if (existing) {
@@ -93,11 +96,12 @@ export function clearCartAndAdd(
   businessId: string,
   businessSlug: string,
   businessName: string,
+  currencyCode: string,
   product: Omit<CartItem, 'quantity'>,
   quantity = 1
 ) {
   save(null)
-  addToCart(businessId, businessSlug, businessName, product, quantity)
+  addToCart(businessId, businessSlug, businessName, currencyCode, product, quantity)
 }
 
 export function removeFromCart(productId: string) {
