@@ -44,6 +44,8 @@ type ReceiptData = {
   total: number
   paymentMethod: string
   paymentAmount: number
+  tenderedAmount?: number  // cash only
+  changeGiven?: number     // cash only
 }
 
 const PAYMENT_METHODS = [
@@ -100,6 +102,7 @@ export default function POSClient({ products, currencyCode, completeSale, custom
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [receipt, setReceipt] = useState<ReceiptData | null>(null)
+  const [cashTendered, setCashTendered] = useState('')
   const searchRef = useRef<HTMLInputElement>(null)
 
   // ── Customer linking state ─────────────────────────────────────────────────
@@ -209,6 +212,7 @@ export default function POSClient({ products, currencyCode, completeSale, custom
     setCustomerPhone('')
     setNotes('')
     setError(null)
+    setCashTendered('')
     setScreen('cart')
     // Reset customer linking state
     setCustomerUserId(null)
@@ -236,6 +240,19 @@ export default function POSClient({ products, currencyCode, completeSale, custom
 
   async function handleCompleteSale() {
     if (!cart.length || submitting) return
+
+    if (paymentMethod === 'cash') {
+      const tendered = parseFloat(cashTendered)
+      if (!cashTendered.trim() || isNaN(tendered)) {
+        setError('Enter the cash amount received')
+        return
+      }
+      if (tendered < cartTotal) {
+        setError(`Cash received is short by ${fmt(cartTotal - tendered)}`)
+        return
+      }
+    }
+
     setSubmitting(true)
     setError(null)
 
@@ -247,7 +264,12 @@ export default function POSClient({ products, currencyCode, completeSale, custom
         unit_price:      i.unit_price,
         discount_amount: i.discount_amount,
       })),
-      payments: [{ payment_method: paymentMethod, amount: cartTotal, reference: null }],
+      payments: [{
+        payment_method: paymentMethod,
+        amount:         cartTotal,
+        reference:      null,
+        ...(paymentMethod === 'cash' ? { tendered_amount: parseFloat(cashTendered) } : {}),
+      }],
       customer_user_id:        customerUserId,
       customer_name_snapshot:  customerName.trim() || null,
       customer_phone_snapshot: customerPhone.trim() || null,
@@ -262,13 +284,19 @@ export default function POSClient({ products, currencyCode, completeSale, custom
       return
     }
 
+    const tenderedAmount = paymentMethod === 'cash' ? parseFloat(cashTendered) : undefined
     setReceipt({
       saleId:        result.saleId,
       items:         [...cart],
       total:         cartTotal,
       paymentMethod,
       paymentAmount: cartTotal,
+      tenderedAmount,
+      changeGiven:   tenderedAmount !== undefined
+        ? Math.round((tenderedAmount - cartTotal) * 100) / 100
+        : undefined,
     })
+    setCashTendered('')
     setSubmitting(false)
     setScreen('receipt')
   }
@@ -312,6 +340,18 @@ export default function POSClient({ products, currencyCode, completeSale, custom
             <span className="text-sm font-semibold text-gray-900 dark:text-white">Total</span>
             <span className="text-sm font-bold text-gray-900 dark:text-white tabular-nums">{fmt(receipt.total)}</span>
           </div>
+          {receipt.paymentMethod === 'cash' && receipt.tenderedAmount != null && (
+            <>
+              <div className="flex items-center justify-between px-4 py-3">
+                <span className="text-sm text-gray-500 dark:text-gray-400">Cash received</span>
+                <span className="text-sm text-gray-700 dark:text-gray-300 tabular-nums">{fmt(receipt.tenderedAmount)}</span>
+              </div>
+              <div className="flex items-center justify-between px-4 py-3">
+                <span className="text-sm text-gray-500 dark:text-gray-400">Change</span>
+                <span className="text-sm text-gray-700 dark:text-gray-300 tabular-nums">{fmt(receipt.changeGiven ?? 0)}</span>
+              </div>
+            </>
+          )}
         </div>
 
         <div className="flex gap-3">
@@ -374,7 +414,7 @@ export default function POSClient({ products, currencyCode, completeSale, custom
               <button
                 key={m.value}
                 type="button"
-                onClick={() => setPaymentMethod(m.value)}
+                onClick={() => { setPaymentMethod(m.value); if (m.value !== 'cash') setCashTendered('') }}
                 className={`py-2.5 rounded-xl text-sm font-medium border transition-colors ${
                   paymentMethod === m.value
                     ? 'bg-indigo-600 border-indigo-600 text-white'
@@ -386,6 +426,38 @@ export default function POSClient({ products, currencyCode, completeSale, custom
             ))}
           </div>
         </div>
+
+        {/* Cash tendered */}
+        {paymentMethod === 'cash' && (
+          <div>
+            <p className={sectionLabel}>Cash received</p>
+            <input
+              type="number"
+              inputMode="decimal"
+              min="0"
+              step="0.01"
+              placeholder={cartTotal.toFixed(2)}
+              value={cashTendered}
+              onChange={(e) => { setCashTendered(e.target.value); setError(null) }}
+              className={`${inputCls} mt-2`}
+            />
+            {cashTendered.trim() === '' ? (
+              <p className="mt-1.5 text-xs text-gray-400 dark:text-neutral-500">Enter amount handed over</p>
+            ) : isNaN(parseFloat(cashTendered)) ? (
+              <p className="mt-1.5 text-xs text-gray-400 dark:text-neutral-500">Enter a valid amount</p>
+            ) : parseFloat(cashTendered) < cartTotal ? (
+              <p className="mt-1.5 text-xs text-red-500 dark:text-red-400">
+                Short by {fmt(cartTotal - parseFloat(cashTendered))}
+              </p>
+            ) : parseFloat(cashTendered) === cartTotal ? (
+              <p className="mt-1.5 text-xs text-green-600 dark:text-green-400">Exact cash</p>
+            ) : (
+              <p className="mt-1.5 text-xs text-green-600 dark:text-green-400">
+                Change due: {fmt(parseFloat(cashTendered) - cartTotal)}
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Customer (optional) */}
         <div>
@@ -513,7 +585,11 @@ export default function POSClient({ products, currencyCode, completeSale, custom
 
         <button
           onClick={handleCompleteSale}
-          disabled={submitting}
+          disabled={submitting || (paymentMethod === 'cash' && (
+            !cashTendered.trim() ||
+            isNaN(parseFloat(cashTendered)) ||
+            parseFloat(cashTendered) < cartTotal
+          ))}
           className="w-full py-3.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-base font-semibold rounded-xl transition-colors"
         >
           {submitting ? (

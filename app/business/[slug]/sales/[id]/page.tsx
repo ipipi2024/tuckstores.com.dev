@@ -64,7 +64,7 @@ export default async function SaleDetailPage({ params }: Props) {
         id, product_name_snapshot, quantity, unit_price, discount_amount, subtotal
       ),
       sale_payments (
-        id, payment_method, amount, reference, paid_at
+        id, payment_method, amount, reference, paid_at, tendered_amount, change_given
       )
     `)
     .eq('id', id)
@@ -215,16 +215,34 @@ export default async function SaleDetailPage({ params }: Props) {
           </div>
           <div className="divide-y divide-gray-50 dark:divide-neutral-800">
             {payments.map((p) => (
-              <div key={p.id} className="px-5 py-3 flex items-center justify-between">
-                <div>
-                  <span className="text-sm font-medium text-gray-900 dark:text-white capitalize">{p.payment_method}</span>
-                  {p.reference && (
-                    <span className="ml-2 text-xs text-gray-400 dark:text-neutral-500">{p.reference}</span>
-                  )}
+              <div key={p.id}>
+                <div className="px-5 py-3 flex items-center justify-between">
+                  <div>
+                    <span className="text-sm font-medium text-gray-900 dark:text-white capitalize">{p.payment_method}</span>
+                    {p.reference && (
+                      <span className="ml-2 text-xs text-gray-400 dark:text-neutral-500">{p.reference}</span>
+                    )}
+                  </div>
+                  <span className="text-sm text-gray-700 dark:text-gray-300 tabular-nums font-medium">
+                    {fmt(p.amount, ctx.business.currency_code)}
+                  </span>
                 </div>
-                <span className="text-sm text-gray-700 dark:text-gray-300 tabular-nums font-medium">
-                  {fmt(p.amount, ctx.business.currency_code)}
-                </span>
+                {p.payment_method === 'cash' && p.tendered_amount != null && (
+                  <>
+                    <div className="px-5 py-2 flex items-center justify-between border-t border-gray-50 dark:border-neutral-800">
+                      <span className="text-sm text-gray-500 dark:text-gray-400">Cash received</span>
+                      <span className="text-sm text-gray-700 dark:text-gray-300 tabular-nums">
+                        {fmt(p.tendered_amount, ctx.business.currency_code)}
+                      </span>
+                    </div>
+                    <div className="px-5 py-2 flex items-center justify-between border-t border-gray-50 dark:border-neutral-800">
+                      <span className="text-sm text-gray-500 dark:text-gray-400">Change</span>
+                      <span className="text-sm text-gray-700 dark:text-gray-300 tabular-nums">
+                        {fmt(p.change_given ?? 0, ctx.business.currency_code)}
+                      </span>
+                    </div>
+                  </>
+                )}
               </div>
             ))}
           </div>

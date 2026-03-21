@@ -82,6 +82,7 @@ export type SalePayment = {
   payment_method: string
   amount: number
   reference: string | null
+  tendered_amount?: number  // cash only
 }
 
 export type CompleteSalePayload = {
@@ -116,6 +117,20 @@ export async function completeSale(
     return { success: false, error: 'No payment provided' }
   }
 
+  for (const p of payload.payments) {
+    if (p.payment_method === 'cash') {
+      if (p.tendered_amount == null || isNaN(p.tendered_amount)) {
+        return { success: false, error: 'Enter the cash amount received' }
+      }
+      if (p.tendered_amount < p.amount) {
+        return {
+          success: false,
+          error: `Cash received is short by ${(p.amount - p.tendered_amount).toFixed(2)}`,
+        }
+      }
+    }
+  }
+
   const supabase = await createClient()
 
   const { data: saleId, error } = await supabase.rpc('create_sale', {
@@ -137,6 +152,9 @@ export async function completeSale(
       payment_method: p.payment_method,
       amount:         p.amount,
       reference:      p.reference ?? null,
+      ...(p.payment_method === 'cash' && p.tendered_amount != null
+        ? { tendered_amount: p.tendered_amount }
+        : {}),
     })),
   })
 
