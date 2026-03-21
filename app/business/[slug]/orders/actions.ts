@@ -43,7 +43,7 @@ export async function updateOrderStatus(
   const { data: order, error: fetchError } = await supabase
     .from('orders')
     .select(`
-      status, order_number, customer_user_id, total_amount,
+      status, fulfillment_method, order_number, customer_user_id, total_amount,
       order_items ( product_id, product_name_snapshot, unit_price_snapshot, quantity )
     `)
     .eq('id', orderId)
@@ -59,6 +59,13 @@ export async function updateOrderStatus(
     redirect(
       `/business/${slug}/orders/${orderId}?error=` +
       encodeURIComponent(`Cannot move from "${order.status}" to "${newStatus}"`)
+    )
+  }
+
+  if (newStatus === 'out_for_delivery' && order.fulfillment_method !== 'delivery') {
+    redirect(
+      `/business/${slug}/orders/${orderId}?error=` +
+      encodeURIComponent('Out for delivery is only valid for delivery orders')
     )
   }
 

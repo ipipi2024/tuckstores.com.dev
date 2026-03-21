@@ -100,7 +100,11 @@ export default async function BusinessOrderDetailPage({ params, searchParams }: 
 
   const items = order.order_items ?? []
   const currency = ctx.business.currency_code
-  const nextStatuses = canManage ? (TRANSITIONS[order.status] ?? []) : []
+  const nextStatuses = canManage
+    ? (TRANSITIONS[order.status] ?? []).filter(
+        s => s !== 'out_for_delivery' || order.fulfillment_method === 'delivery'
+      )
+    : []
 
   const action = updateOrderStatus.bind(null, slug, order.id)
 
