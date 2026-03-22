@@ -11,12 +11,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const user = await getAuthUser()
   const admin = createAdminClient()
 
-  const [{ count: activeOrders }, convResult, { count: unreadNotifications }] = await Promise.all([
-    admin
-      .from('orders')
-      .select('id', { count: 'exact', head: true })
-      .eq('customer_user_id', user.id)
-      .in('status', ['pending', 'accepted', 'preparing', 'ready', 'out_for_delivery']),
+  const [{ data: unseenOrders }, convResult, { count: unreadNotifications }] = await Promise.all([
+    admin.rpc('count_customer_unseen_orders', { p_user_id: user.id }),
     admin
       .from('conversations')
       .select('updated_at, customer_last_read_at')
@@ -55,7 +51,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <main className="max-w-lg mx-auto px-4 py-5">
           {children}
         </main>
-        <AppNav ordersBadge={activeOrders ?? 0} messagesBadge={unreadMessages} />
+        <AppNav ordersBadge={unseenOrders ?? 0} messagesBadge={unreadMessages} />
       </div>
     </NotificationProvider>
   )

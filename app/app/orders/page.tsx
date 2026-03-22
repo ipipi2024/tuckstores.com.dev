@@ -47,6 +47,9 @@ export default async function OrdersPage() {
   const user = await getAuthUser()
   const admin = createAdminClient()
 
+  // Mark all orders as seen — clears the nav badge
+  await admin.rpc('mark_customer_orders_seen', { p_user_id: user.id })
+
   const { data: orders } = await admin
     .from('orders')
     .select('id, order_number, placed_at, total_amount, status, fulfillment_method, businesses ( name, currency_code )')

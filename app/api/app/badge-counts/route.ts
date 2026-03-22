@@ -8,12 +8,8 @@ export async function GET() {
 
   const admin = createAdminClient()
 
-  const [{ count: activeOrders }, convResult] = await Promise.all([
-    admin
-      .from('orders')
-      .select('id', { count: 'exact', head: true })
-      .eq('customer_user_id', user.id)
-      .in('status', ['pending', 'accepted', 'preparing', 'ready', 'out_for_delivery']),
+  const [{ data: unseenOrders }, convResult] = await Promise.all([
+    admin.rpc('count_customer_unseen_orders', { p_user_id: user.id }),
     admin
       .from('conversations')
       .select('updated_at, customer_last_read_at')
@@ -25,5 +21,5 @@ export async function GET() {
     (c) => !c.customer_last_read_at || new Date(c.updated_at) > new Date(c.customer_last_read_at)
   ).length
 
-  return NextResponse.json({ activeOrders: activeOrders ?? 0, unreadMessages })
+  return NextResponse.json({ activeOrders: unseenOrders ?? 0, unreadMessages })
 }
