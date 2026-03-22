@@ -23,7 +23,7 @@ export default async function ProductDetailPage({ params }: Props) {
   const { data: product } = await supabase
     .from('products')
     .select(`
-      id, name, description, sku, selling_price,
+      id, name, description, sku, selling_price, measurement_type, base_unit,
       product_images ( url, position ),
       businesses ( id, name, slug, description, catchline, phone, email, currency_code, logo_url ),
       product_categories ( id, name )
@@ -98,6 +98,11 @@ export default async function ProductDetailPage({ params }: Props) {
               </h1>
               <p className="text-3xl font-bold text-indigo-600 dark:text-indigo-400 mt-3 tabular-nums">
                 {fmtCurrency(product.selling_price, currency)}
+                {product.measurement_type !== 'unit' && (
+                  <span className="text-base font-normal text-gray-400 dark:text-neutral-500 ml-1.5">
+                    per {product.base_unit}
+                  </span>
+                )}
               </p>
             </div>
 

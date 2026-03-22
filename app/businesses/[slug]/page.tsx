@@ -49,7 +49,7 @@ export default async function PublicBusinessPage({ params }: Props) {
 
   const { data: prodsData } = await supabase
     .from('products')
-    .select('id, name, description, sku, selling_price, category_id, product_images ( url, position )')
+    .select('id, name, description, sku, selling_price, measurement_type, base_unit, category_id, product_images ( url, position )')
     .eq('business_id', biz.id)
     .eq('is_active', true)
     .order('name', { ascending: true })
@@ -245,6 +245,11 @@ export default async function PublicBusinessPage({ params }: Props) {
                             <div className="flex flex-col gap-2 mt-auto pt-1">
                               <span className="text-sm font-bold text-gray-900 dark:text-white tabular-nums">
                                 {fmtCurrency(p.selling_price, currency)}
+                                {p.measurement_type !== 'unit' && (
+                                  <span className="text-xs font-normal text-gray-400 dark:text-neutral-500 ml-0.5">
+                                    / {p.base_unit}
+                                  </span>
+                                )}
                               </span>
                               <AddToCartButton
                                 businessId={biz.id}
