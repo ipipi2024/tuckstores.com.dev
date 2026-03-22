@@ -3,51 +3,42 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
-import { Home, ShoppingBag, ShoppingCart, Store, User } from 'lucide-react'
+import { Home, MessageSquare, ShoppingBag, Store, User } from 'lucide-react'
 import { useNotifications } from '@/components/NotificationProvider'
-import { getCart, getItemCount } from '@/lib/cart/store'
 
 const NAV = [
-  { href: '/app',         label: 'Home',    icon: Home,         exact: true,  badge: null },
-  { href: '/businesses',  label: 'Explore', icon: Store,        exact: false, badge: null },
-  { href: '/app/cart',    label: 'Cart',    icon: ShoppingCart, exact: false, badge: 'cart' as const },
-  { href: '/app/orders',  label: 'Orders',  icon: ShoppingBag,  exact: false, badge: 'orders' as const },
-  { href: '/app/profile', label: 'Account', icon: User,         exact: false, badge: null },
+  { href: '/app',           label: 'Home',     icon: Home,          exact: true,  badge: null },
+  { href: '/businesses',    label: 'Explore',  icon: Store,         exact: false, badge: null },
+  { href: '/app/orders',    label: 'Orders',   icon: ShoppingBag,   exact: false, badge: 'orders' as const },
+  { href: '/app/messages',  label: 'Messages', icon: MessageSquare, exact: false, badge: 'messages' as const },
+  { href: '/app/profile',   label: 'Account',  icon: User,          exact: false, badge: null },
 ]
 
 const POLL_INTERVAL = 30_000 // 30 seconds
 
 export default function AppNav({
   ordersBadge = 0,
+  messagesBadge = 0,
 }: {
   ordersBadge?: number
+  messagesBadge?: number
 }) {
   const pathname = usePathname()
   // notifications count kept for potential future use but not shown in nav
   const { unreadCount: _notificationsCount } = useNotifications()
-  const [counts, setCounts] = useState({ orders: ordersBadge, cart: 0 })
+  const [counts, setCounts] = useState({ orders: ordersBadge, messages: messagesBadge })
 
-  // Sync server-rendered orders badge on navigation
+  // Sync server-rendered badges on navigation
   useEffect(() => {
-    setCounts((c) => ({ ...c, orders: ordersBadge }))
-  }, [ordersBadge])
-
-  // Sync cart count from localStorage
-  useEffect(() => {
-    function syncCart() {
-      setCounts((c) => ({ ...c, cart: getItemCount(getCart()) }))
-    }
-    syncCart()
-    window.addEventListener('cart-updated', syncCart)
-    return () => window.removeEventListener('cart-updated', syncCart)
-  }, [])
+    setCounts((c) => ({ ...c, orders: ordersBadge, messages: messagesBadge }))
+  }, [ordersBadge, messagesBadge])
 
   const refresh = useCallback(async () => {
     try {
       const res = await fetch('/api/app/badge-counts')
       if (!res.ok) return
-      const { activeOrders } = await res.json()
-      setCounts((c) => ({ ...c, orders: activeOrders }))
+      const { activeOrders, unreadMessages } = await res.json()
+      setCounts((c) => ({ ...c, orders: activeOrders, messages: unreadMessages ?? 0 }))
     } catch {
       // ignore network errors
     }

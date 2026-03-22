@@ -1,6 +1,7 @@
 import { getAuthUser } from '@/lib/auth/get-user'
 import { createAdminClient } from '@/lib/supabase/admin'
 import AppNav from './AppNav'
+import HeaderCartIcon from './HeaderCartIcon'
 import Link from 'next/link'
 import { Briefcase } from 'lucide-react'
 import { NotificationProvider } from '@/components/NotificationProvider'
@@ -39,21 +40,22 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <span className="text-base font-bold text-gray-900 dark:text-white tracking-tight">
             TuckStores
           </span>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <HeaderCartIcon />
             <NotificationBell />
             <Link
               href="/business/select"
-              className="flex items-center gap-1.5 text-xs font-medium text-gray-500 dark:text-neutral-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+              className="p-1.5 text-gray-500 dark:text-neutral-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+              title="Business Dashboard"
             >
-              <Briefcase size={13} strokeWidth={1.75} />
-              Business Dashboard
+              <Briefcase size={18} strokeWidth={1.75} />
             </Link>
           </div>
         </header>
         <main className="max-w-lg mx-auto px-4 py-5">
           {children}
         </main>
-        <AppNav ordersBadge={activeOrders ?? 0} />
+        <AppNav ordersBadge={activeOrders ?? 0} messagesBadge={unreadMessages} />
       </div>
     </NotificationProvider>
   )
