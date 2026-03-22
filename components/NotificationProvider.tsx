@@ -149,14 +149,23 @@ function NotificationToast() {
     clearLatest()
   }
 
-  function handleClick() {
+  async function handleClick() {
     const url = current?.data?.url
     const notif = current
+    // Dismiss immediately for instant visual feedback, then await the write
+    // before navigating. Awaiting prevents the route-change layout re-render
+    // from racing ahead and re-syncing a stale initialUnreadCount over the
+    // correct decrement that markNotificationSeen would return.
     dismiss()
-    // Mark seen fire-and-forget so navigation is instant.
-    // markNotificationSeen handles both read_at and order-seen atomically.
     if (notif) {
-      markNotificationSeen(notif.id, isCustomer).then(setUnreadCount).catch(() => {})
+      try {
+        const newCount = await markNotificationSeen(notif.id, isCustomer)
+        setUnreadCount(newCount)
+      } catch (err) {
+        // Write failed — badge will self-correct on the next layout render
+        // since initialUnreadCount re-fetches from the server on route change.
+        console.error('[NotificationToast] markNotificationSeen failed:', err)
+      }
     }
     if (url) router.push(url)
   }

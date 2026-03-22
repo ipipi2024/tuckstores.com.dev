@@ -74,25 +74,18 @@ export async function markNotificationSeen(
 }
 
 /**
- * Mark all notifications as read for the current customer, and simultaneously
- * clear the orders badge by advancing customer_seen_status on all orders.
+ * Mark all notifications as read for the current customer and clear the orders
+ * badge in a single atomic Postgres call.
  *
- * The two operations are always paired for customers so the bell badge and
- * orders badge stay in sync. Calling one without the other is the root cause
- * of stuck badges.
+ * The mark_customer_all_seen function wraps both UPDATEs in one transaction so
+ * they always succeed or fail together — no partial-success window where the
+ * bell badge clears but the orders badge stays stuck (or vice versa).
  */
 export async function markAllCustomerNotificationsSeen(): Promise<void> {
   const user = await getAuthUser()
   const supabase = await createClient()
 
-  await Promise.all([
-    supabase
-      .from('notifications')
-      .update({ read_at: new Date().toISOString() })
-      .eq('user_id', user.id)
-      .is('read_at', null),
-    supabase.rpc('mark_customer_orders_seen', { p_user_id: user.id }),
-  ])
+  await supabase.rpc('mark_customer_all_seen', { p_user_id: user.id })
 
   revalidatePath('/app', 'layout')
 }
