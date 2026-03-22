@@ -7,6 +7,7 @@ import {
   Search, Plus, Minus, Trash2, ChevronRight,
   CheckCircle2, ArrowLeft, ShoppingCart, X, User, AlertCircle, Edit2,
 } from 'lucide-react'
+import Image from 'next/image'
 import Spinner from '@/components/ui/Spinner'
 import type { CompleteSalePayload, CompleteSaleResult, SaleItem } from './actions'
 
@@ -27,6 +28,7 @@ type Product = {
   stock: number
   measurement_type: string
   base_unit: string
+  image_url: string | null
 }
 
 type CartItem = {
@@ -814,36 +816,49 @@ export default function POSClient({ products, currencyCode, completeSale, custom
                     key={product.id}
                     onClick={() => addToCart(product)}
                     disabled={outOfStock}
-                    className={`relative text-left rounded-xl border p-3 transition-colors ${
+                    className={`relative text-left rounded-xl border overflow-hidden transition-colors ${
                       outOfStock
                         ? 'opacity-50 cursor-not-allowed border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900'
                         : 'border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 hover:border-indigo-400 dark:hover:border-indigo-600 hover:shadow-sm active:scale-[0.98]'
                     }`}
                   >
                     {inCart && (
-                      <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-indigo-600 text-white text-xs flex items-center justify-center font-bold">
+                      <span className="absolute top-2 right-2 z-10 w-5 h-5 rounded-full bg-indigo-600 text-white text-xs flex items-center justify-center font-bold">
                         {isMeasurable ? '✓' : inCart.quantity}
                       </span>
                     )}
-                    <p className="text-sm font-medium text-gray-900 dark:text-white leading-tight pr-6">{product.name}</p>
-                    {product.sku && (
-                      <p className="text-xs text-gray-400 dark:text-neutral-500 mt-0.5">#{product.sku}</p>
+                    {product.image_url && (
+                      <div className="relative w-full aspect-square bg-gray-100 dark:bg-neutral-800">
+                        <Image
+                          src={product.image_url}
+                          alt={product.name}
+                          fill
+                          className="object-cover"
+                          sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
+                        />
+                      </div>
                     )}
-                    <p className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 mt-1 tabular-nums">
-                      {fmt(product.selling_price)}
-                      {isMeasurable && (
-                        <span className="text-xs font-normal text-indigo-400 dark:text-indigo-500">/{product.base_unit}</span>
+                    <div className="p-3">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white leading-tight pr-6">{product.name}</p>
+                      {product.sku && (
+                        <p className="text-xs text-gray-400 dark:text-neutral-500 mt-0.5">#{product.sku}</p>
                       )}
-                    </p>
-                    <p className={`text-xs mt-0.5 ${
-                      outOfStock
-                        ? 'text-red-500'
-                        : product.stock <= 5
-                        ? 'text-amber-500'
-                        : 'text-gray-400 dark:text-neutral-500'
-                    }`}>
-                      {fmtStock(product.stock, product.base_unit)}
-                    </p>
+                      <p className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 mt-1 tabular-nums">
+                        {fmt(product.selling_price)}
+                        {isMeasurable && (
+                          <span className="text-xs font-normal text-indigo-400 dark:text-indigo-500">/{product.base_unit}</span>
+                        )}
+                      </p>
+                      <p className={`text-xs mt-0.5 ${
+                        outOfStock
+                          ? 'text-red-500'
+                          : product.stock <= 5
+                          ? 'text-amber-500'
+                          : 'text-gray-400 dark:text-neutral-500'
+                      }`}>
+                        {fmtStock(product.stock, product.base_unit)}
+                      </p>
+                    </div>
                   </button>
                 )
               })}

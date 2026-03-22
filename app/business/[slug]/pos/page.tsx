@@ -32,7 +32,8 @@ export default async function POSPage({ params }: Props) {
     .from('products')
     .select(`
       id, name, sku, selling_price, measurement_type, base_unit,
-      product_stock ( stock_quantity )
+      product_stock ( stock_quantity ),
+      product_images ( url, position )
     `)
     .eq('business_id', ctx.business.id)
     .eq('is_active', true)
@@ -41,6 +42,8 @@ export default async function POSPage({ params }: Props) {
   const productList = (products ?? []).map((p) => {
     const stockRows = Array.isArray(p.product_stock) ? p.product_stock : (p.product_stock ? [p.product_stock] : [])
     const stock = stockRows.reduce((sum: number, r: { stock_quantity: number | null }) => sum + (r.stock_quantity ?? 0), 0)
+    const imgs = Array.isArray(p.product_images) ? p.product_images : (p.product_images ? [p.product_images] : [])
+    const primaryImg = imgs.sort((a: { position: number }, b: { position: number }) => a.position - b.position)[0]
     return {
       id: p.id,
       name: p.name,
@@ -49,6 +52,7 @@ export default async function POSPage({ params }: Props) {
       stock,
       measurement_type: p.measurement_type ?? 'unit',
       base_unit: p.base_unit ?? 'unit',
+      image_url: primaryImg?.url ?? null,
     }
   })
 
