@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useNotifications } from '@/components/NotificationProvider'
-import { markNotificationRead, fetchOlderNotifications } from './actions'
+import { markNotificationRead, fetchOlderNotifications, markOrderSeen } from './actions'
 import { ShoppingBag, Bell } from 'lucide-react'
 
 type NotificationRow = {
@@ -49,11 +49,11 @@ export default function NotificationList({
   const all = [...notifications, ...extras]
 
   async function handleClick(n: NotificationRow) {
-    if (!n.read_at) {
-      // Server action returns authoritative unread count after the update
-      const newCount = await markNotificationRead(n.id)
-      setUnreadCount(newCount)
-    }
+    const isOrderNotif = n.type === 'order_status_changed' || n.type === 'order_placed'
+    await Promise.all([
+      n.read_at ? null : markNotificationRead(n.id).then(setUnreadCount),
+      isOrderNotif && n.data?.order_id ? markOrderSeen(n.data.order_id) : null,
+    ])
     const url = n.data?.url
     if (url) router.push(url)
   }

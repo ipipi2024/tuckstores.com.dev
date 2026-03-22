@@ -54,6 +54,31 @@ export async function markAllNotificationsRead(): Promise<void> {
 }
 
 /**
+ * Mark a single order as seen by the current customer.
+ * Called when they open an order-related notification so only that order's
+ * badge contribution is cleared (not all orders).
+ */
+export async function markOrderSeen(orderId: string): Promise<void> {
+  const user = await getAuthUser()
+  const supabase = await createClient()
+
+  const { data } = await supabase
+    .from('orders')
+    .select('status')
+    .eq('id', orderId)
+    .eq('customer_user_id', user.id)
+    .single()
+
+  if (!data) return
+
+  await supabase
+    .from('orders')
+    .update({ customer_seen_status: data.status })
+    .eq('id', orderId)
+    .eq('customer_user_id', user.id)
+}
+
+/**
  * Fetch the next page of notifications for the current user.
  * Used by the Load More button in NotificationList.
  */
