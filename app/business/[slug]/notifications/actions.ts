@@ -4,7 +4,11 @@ import { getAuthUser } from '@/lib/auth/get-user'
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 
-export async function markAllNotificationsRead(slug: string): Promise<void> {
+/**
+ * Mark all notifications as read for a vendor (business member).
+ * Does NOT touch orders.customer_seen_status — vendors have no order-seen state.
+ */
+export async function markAllVendorNotificationsSeen(slug: string): Promise<void> {
   const user = await getAuthUser()
   const supabase = await createClient()
 

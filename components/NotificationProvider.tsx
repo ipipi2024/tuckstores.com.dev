@@ -21,6 +21,7 @@ import {
 import { useRouter } from 'next/navigation'
 import { Bell, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { markNotificationSeen } from '@/app/app/notifications/actions'
 
 export type NotificationRow = {
   id: string
@@ -35,6 +36,7 @@ export type NotificationRow = {
 type NotificationContextValue = {
   unreadCount: number
   latestNotification: NotificationRow | null
+  isCustomer: boolean
   /** Set the count to an authoritative value returned by a server action. */
   setUnreadCount: (n: number) => void
   resetUnread: () => void
@@ -44,6 +46,7 @@ type NotificationContextValue = {
 const NotificationContext = createContext<NotificationContextValue>({
   unreadCount: 0,
   latestNotification: null,
+  isCustomer: false,
   setUnreadCount: () => {},
   resetUnread: () => {},
   clearLatest: () => {},
@@ -53,10 +56,12 @@ export function NotificationProvider({
   children,
   userId,
   initialUnreadCount,
+  isCustomer,
 }: {
   children: ReactNode
   userId: string
   initialUnreadCount: number
+  isCustomer: boolean
 }) {
   const [unreadCount, setUnreadCount] = useState(initialUnreadCount)
   const [latestNotification, setLatestNotification] = useState<NotificationRow | null>(null)
@@ -96,7 +101,7 @@ export function NotificationProvider({
 
   return (
     <NotificationContext.Provider
-      value={{ unreadCount, latestNotification, setUnreadCount, resetUnread, clearLatest }}
+      value={{ unreadCount, latestNotification, isCustomer, setUnreadCount, resetUnread, clearLatest }}
     >
       {children}
       <NotificationToast />
@@ -118,7 +123,7 @@ export function useNotifications() {
  * Rendered inside NotificationProvider so it works in both /app and /business layouts.
  */
 function NotificationToast() {
-  const { latestNotification, clearLatest } = useContext(NotificationContext)
+  const { latestNotification, isCustomer, setUnreadCount, clearLatest } = useContext(NotificationContext)
   const router = useRouter()
   const shownId = useRef<string | null>(null)
   const [current, setCurrent] = useState<NotificationRow | null>(null)
@@ -146,7 +151,13 @@ function NotificationToast() {
 
   function handleClick() {
     const url = current?.data?.url
+    const notif = current
     dismiss()
+    // Mark seen fire-and-forget so navigation is instant.
+    // markNotificationSeen handles both read_at and order-seen atomically.
+    if (notif) {
+      markNotificationSeen(notif.id, isCustomer).then(setUnreadCount).catch(() => {})
+    }
     if (url) router.push(url)
   }
 

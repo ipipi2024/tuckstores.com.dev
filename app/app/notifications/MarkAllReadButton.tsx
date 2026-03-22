@@ -3,7 +3,7 @@
 import { useTransition } from 'react'
 import { CheckCheck } from 'lucide-react'
 import { useNotifications } from '@/components/NotificationProvider'
-import { markAllNotificationsRead } from './actions'
+import { markAllCustomerNotificationsSeen } from './actions'
 import { useRouter } from 'next/navigation'
 
 export default function MarkAllReadButton() {
@@ -13,8 +13,8 @@ export default function MarkAllReadButton() {
 
   function handleClick() {
     startTransition(async () => {
-      resetUnread()                   // immediate — badge clears at once
-      await markAllNotificationsRead() // persists to DB + revalidates layout
+      resetUnread()                          // immediate — badge clears at once
+      await markAllCustomerNotificationsSeen() // persists to DB, clears orders badge, revalidates layout
       router.refresh()                 // re-renders the list so rows show as read
     })
   }

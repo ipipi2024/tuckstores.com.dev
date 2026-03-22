@@ -48,7 +48,7 @@ export default async function BusinessNotificationsPage({ params }: Props) {
           <p className="text-sm text-gray-400 dark:text-neutral-500">No notifications yet</p>
         </div>
       ) : (
-        <NotificationList notifications={allNotifications} initialHasMore={hasMore} />
+        <NotificationList notifications={allNotifications} initialHasMore={hasMore} isCustomer={false} />
       )}
     </div>
   )

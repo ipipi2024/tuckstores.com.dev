@@ -74,7 +74,7 @@ export default async function BusinessLayout({ children, params }: Props) {
   }
 
   return (
-    <NotificationProvider userId={user.id} initialUnreadCount={unreadNotifications ?? 0}>
+    <NotificationProvider userId={user.id} initialUnreadCount={unreadNotifications ?? 0} isCustomer={false}>
     <div className="min-h-screen bg-gray-50 dark:bg-neutral-950">
       <BusinessNav
         slug={slug}

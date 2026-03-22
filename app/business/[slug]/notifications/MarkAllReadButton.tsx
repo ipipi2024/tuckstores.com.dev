@@ -3,7 +3,7 @@
 import { useTransition } from 'react'
 import { CheckCheck } from 'lucide-react'
 import { useNotifications } from '@/components/NotificationProvider'
-import { markAllNotificationsRead } from './actions'
+import { markAllVendorNotificationsSeen } from './actions'
 import { useRouter } from 'next/navigation'
 
 export default function MarkAllReadButton({ slug }: { slug: string }) {
@@ -14,7 +14,7 @@ export default function MarkAllReadButton({ slug }: { slug: string }) {
   function handleClick() {
     startTransition(async () => {
       resetUnread()
-      await markAllNotificationsRead(slug)
+      await markAllVendorNotificationsSeen(slug)
       router.refresh()
     })
   }

@@ -31,7 +31,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   ).length
 
   return (
-    <NotificationProvider userId={user.id} initialUnreadCount={unreadNotifications ?? 0}>
+    <NotificationProvider userId={user.id} initialUnreadCount={unreadNotifications ?? 0} isCustomer={true}>
       <div className="min-h-screen bg-gray-50 dark:bg-neutral-950">
         <CustomerNav
           userName={profile?.full_name ?? null}

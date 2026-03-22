@@ -200,6 +200,7 @@ export async function updateOrderStatus(
   const STATUS_TITLES: Record<string, string> = {
     accepted:         'Your order has been accepted',
     rejected:         'Your order has been declined',
+    preparing:        'Your order is being prepared',
     ready:            'Your order is ready',
     out_for_delivery: 'Your order is out for delivery',
     completed:        'Your order is complete',

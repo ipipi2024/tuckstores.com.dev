@@ -51,7 +51,7 @@ export default async function NotificationsPage() {
           </div>
         </div>
       ) : (
-        <NotificationList notifications={allNotifications} initialHasMore={hasMore} />
+        <NotificationList notifications={allNotifications} initialHasMore={hasMore} isCustomer={true} />
       )}
     </div>
   )
