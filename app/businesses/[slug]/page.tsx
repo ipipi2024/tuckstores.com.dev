@@ -259,6 +259,7 @@ export default async function PublicBusinessPage({ params }: Props) {
                                 productId={p.id}
                                 productName={p.name}
                                 unitPrice={p.selling_price}
+                                baseUnit={p.base_unit ?? 'unit'}
                                 className="w-full justify-center"
                               />
                             </div>

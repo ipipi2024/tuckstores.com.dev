@@ -104,7 +104,10 @@ export default function CartPage() {
               </span>
             </div>
             <p className="text-xs text-gray-400 dark:text-neutral-500 mt-0.5">
-              {fmtCurrency(item.unitPrice, currency)} each
+              {fmtCurrency(item.unitPrice, currency)}
+              {item.baseUnit && item.baseUnit !== 'unit'
+                ? ` / ${item.baseUnit}`
+                : ' each'}
             </p>
 
             {/* Qty controls + remove */}

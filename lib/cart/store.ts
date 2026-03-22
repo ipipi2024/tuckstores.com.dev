@@ -16,6 +16,8 @@ export type CartItem = {
   /** Display price only — server will re-read the real price */
   unitPrice: number
   quantity: number
+  /** 'unit' for individually-sold items, 'kg' or 'L' for weighted/volume */
+  baseUnit?: string
 }
 
 export type Cart = {

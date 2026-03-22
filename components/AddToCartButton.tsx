@@ -16,6 +16,7 @@ type Props = {
   productId: string
   productName: string
   unitPrice: number
+  baseUnit?: string
   className?: string
 }
 
@@ -27,6 +28,7 @@ export default function AddToCartButton({
   productId,
   productName,
   unitPrice,
+  baseUnit,
   className = '',
 }: Props) {
   const [added, setAdded] = useState(false)
@@ -37,6 +39,7 @@ export default function AddToCartButton({
       productId,
       productName,
       unitPrice,
+      baseUnit,
     })
 
     if (result.conflict) {
@@ -57,6 +60,7 @@ export default function AddToCartButton({
       productId,
       productName,
       unitPrice,
+      baseUnit,
     })
     setConflict(null)
     flashAdded()

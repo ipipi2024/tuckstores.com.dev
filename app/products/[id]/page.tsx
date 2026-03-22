@@ -131,6 +131,7 @@ export default async function ProductDetailPage({ params }: Props) {
                   productId={product.id}
                   productName={product.name}
                   unitPrice={product.selling_price}
+                  baseUnit={product.base_unit ?? 'unit'}
                   className="w-full justify-center py-3 text-base rounded-2xl"
                 />
               </div>
