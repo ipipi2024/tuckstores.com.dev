@@ -497,7 +497,10 @@ export default function POSClient({ products, currencyCode, completeSale, custom
                 <div>
                   <p className="text-sm font-medium text-gray-900 dark:text-white">{item.product_name}</p>
                   <p className="text-xs text-gray-400 dark:text-neutral-500">
-                    × {fmtQty(item.quantity, item.unit_snapshot)}
+                    {item.unit_snapshot !== 'unit'
+                      ? `${fmtQty(item.quantity, item.unit_snapshot)} @ ${fmt(item.unit_price)}/${item.unit_snapshot}`
+                      : `× ${item.quantity} @ ${fmt(item.unit_price)} each`
+                    }
                   </p>
                 </div>
                 <span className="text-sm text-gray-700 dark:text-gray-300 tabular-nums">
@@ -566,7 +569,10 @@ export default function POSClient({ products, currencyCode, completeSale, custom
                 <div>
                   <p className="text-sm font-medium text-gray-900 dark:text-white">{item.product_name}</p>
                   <p className="text-xs text-gray-400 dark:text-neutral-500">
-                    × {fmtQty(item.quantity, item.unit_snapshot)}
+                    {item.unit_snapshot !== 'unit'
+                      ? `${fmtQty(item.quantity, item.unit_snapshot)} @ ${fmt(item.unit_price)}/${item.unit_snapshot}`
+                      : `× ${item.quantity} @ ${fmt(item.unit_price)} each`
+                    }
                   </p>
                 </div>
                 <span className="text-sm text-gray-700 dark:text-gray-300 tabular-nums">

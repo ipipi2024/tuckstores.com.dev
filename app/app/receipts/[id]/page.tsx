@@ -16,6 +16,12 @@ function fmtCurrency(amount: number, currency: string): string {
   }).format(amount)
 }
 
+function fmtQty(quantity: number, unitSnapshot: string | null): string {
+  const unit = unitSnapshot ?? 'unit'
+  if (unit === 'unit') return String(Math.round(quantity))
+  return `${Number(quantity).toFixed(3)} ${unit}`
+}
+
 function fmtDatetime(dateStr: string): string {
   return new Date(dateStr).toLocaleString(undefined, {
     year: 'numeric',
@@ -56,7 +62,7 @@ export default async function ReceiptDetailPage({ params }: Props) {
       customer_name_snapshot, customer_phone_snapshot,
       businesses ( name, currency_code, phone, email ),
       sale_items (
-        id, product_name_snapshot, quantity, unit_price, discount_amount, subtotal
+        id, product_name_snapshot, quantity, unit_snapshot, unit_price, discount_amount, subtotal
       ),
       sale_payments (
         id, payment_method, amount, reference, paid_at
@@ -128,7 +134,10 @@ export default async function ReceiptDetailPage({ params }: Props) {
               <div className="flex-1 min-w-0">
                 <p className="text-sm text-gray-900 dark:text-white truncate">{item.product_name_snapshot}</p>
                 <p className="text-xs text-gray-400 dark:text-neutral-500 mt-0.5">
-                  {item.quantity} × {fmtCurrency(item.unit_price, currency)}
+                  {item.unit_snapshot && item.unit_snapshot !== 'unit'
+                    ? `${fmtQty(item.quantity, item.unit_snapshot)} @ ${fmtCurrency(item.unit_price, currency)}/${item.unit_snapshot}`
+                    : `${Math.round(item.quantity)} × ${fmtCurrency(item.unit_price, currency)}`
+                  }
                   {item.discount_amount > 0 && (
                     <span className="ml-1 text-amber-600 dark:text-amber-400">
                       −{fmtCurrency(item.discount_amount, currency)}

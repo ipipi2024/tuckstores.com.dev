@@ -172,6 +172,11 @@ export default async function SaleDetailPage({ params }: Props) {
                   <td className="px-4 py-3 text-right text-gray-700 dark:text-gray-300 tabular-nums">{fmtQty(item.quantity, item.unit_snapshot)}</td>
                   <td className="px-4 py-3 text-right text-gray-700 dark:text-gray-300 tabular-nums">
                     {fmt(item.unit_price, ctx.business.currency_code)}
+                    {item.unit_snapshot && item.unit_snapshot !== 'unit' && (
+                      <span className="text-xs text-gray-400 dark:text-neutral-500 ml-0.5">
+                        /{item.unit_snapshot}
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-right text-gray-500 dark:text-gray-400 tabular-nums hidden sm:table-cell">
                     {item.discount_amount > 0
