@@ -84,8 +84,8 @@ export function SalesCharts({ dailyData, channelData, currency }: Props) {
                 width={60}
               />
               <Tooltip
-                formatter={(value: number) => [fmtCurrency(value, currency), 'Revenue']}
-                labelFormatter={fmtDay}
+                formatter={(value) => [fmtCurrency(Number(value), currency), 'Revenue']}
+                labelFormatter={(label) => fmtDay(String(label))}
                 contentStyle={tooltipStyle}
                 cursor={{ stroke: 'rgba(99,102,241,0.3)', strokeWidth: 1 }}
               />
@@ -133,7 +133,7 @@ export function SalesCharts({ dailyData, channelData, currency }: Props) {
                 width={50}
               />
               <Tooltip
-                formatter={(value: number) => [fmtCurrency(value, currency), 'Revenue']}
+                formatter={(value) => [fmtCurrency(Number(value), currency), 'Revenue']}
                 contentStyle={tooltipStyle}
                 cursor={{ fill: 'rgba(255,255,255,0.04)' }}
               />
