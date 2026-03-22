@@ -1,13 +1,35 @@
 import Link from 'next/link'
 import { getAuthUser } from '@/lib/auth/get-user'
 import { getUserMemberships } from '@/lib/auth/get-business-context'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { Building2, Plus, Store } from 'lucide-react'
 
 export default async function BusinessSelectPage() {
-  // Require authentication
-  await getAuthUser()
+  const user = await getAuthUser()
 
-  const memberships = await getUserMemberships()
+  const [memberships, profileResult] = await Promise.all([
+    getUserMemberships(),
+    createAdminClient()
+      .from('users')
+      .select('is_vendor_approved, store_limit')
+      .eq('id', user.id)
+      .single(),
+  ])
+
+  const profile = profileResult.data
+  const isAdmin = user.email === process.env.ADMIN_EMAIL
+  const canCreateStore = isAdmin || profile?.is_vendor_approved
+
+  // Fetch pending application status for non-approved users
+  let applicationStatus: string | null = null
+  if (!canCreateStore) {
+    const { data: app } = await createAdminClient()
+      .from('vendor_applications')
+      .select('status')
+      .eq('user_id', user.id)
+      .maybeSingle()
+    applicationStatus = app?.status ?? null
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex flex-col items-center justify-center p-4">
@@ -75,13 +97,27 @@ export default async function BusinessSelectPage() {
 
         {/* Actions */}
         <div className="space-y-3">
-          <Link
-            href="/business/new"
-            className="flex items-center justify-center gap-2 w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Create a Business
-          </Link>
+          {canCreateStore ? (
+            <Link
+              href="/business/new"
+              className="flex items-center justify-center gap-2 w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Create a Business
+            </Link>
+          ) : applicationStatus === 'pending' ? (
+            <div className="flex items-center justify-center gap-2 w-full py-3 px-4 bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800 text-yellow-700 dark:text-yellow-400 font-medium rounded-xl text-sm">
+              Vendor application under review
+            </div>
+          ) : (
+            <Link
+              href="/vendor/apply"
+              className="flex items-center justify-center gap-2 w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Apply to Sell
+            </Link>
+          )}
 
           <Link
             href="/app"

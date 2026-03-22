@@ -9,6 +9,61 @@ function isAdmin(email: string | undefined) {
   return email === process.env.ADMIN_EMAIL
 }
 
+export async function approveVendor(formData: FormData) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user || !isAdmin(user.email)) redirect('/')
+
+  const applicationId = formData.get('application_id') as string
+  const vendorUserId  = formData.get('vendor_user_id') as string
+  const storeLimit    = parseInt(formData.get('store_limit') as string, 10) || 1
+  const adminNotes    = (formData.get('admin_notes') as string | null)?.trim() || null
+
+  const admin = createAdminClient()
+
+  await Promise.all([
+    admin.from('vendor_applications').update({
+      status:      'approved',
+      admin_notes: adminNotes,
+      reviewed_at: new Date().toISOString(),
+    }).eq('id', applicationId),
+
+    admin.from('users').update({
+      is_vendor_approved: true,
+      store_limit:        storeLimit,
+    }).eq('id', vendorUserId),
+  ])
+
+  revalidatePath('/admin')
+}
+
+export async function rejectVendor(formData: FormData) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user || !isAdmin(user.email)) redirect('/')
+
+  const applicationId = formData.get('application_id') as string
+  const vendorUserId  = formData.get('vendor_user_id') as string
+  const adminNotes    = (formData.get('admin_notes') as string | null)?.trim() || null
+
+  const admin = createAdminClient()
+
+  await Promise.all([
+    admin.from('vendor_applications').update({
+      status:      'rejected',
+      admin_notes: adminNotes,
+      reviewed_at: new Date().toISOString(),
+    }).eq('id', applicationId),
+
+    admin.from('users').update({
+      is_vendor_approved: false,
+      store_limit:        0,
+    }).eq('id', vendorUserId),
+  ])
+
+  revalidatePath('/admin')
+}
+
 export async function grantSubscription(formData: FormData) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

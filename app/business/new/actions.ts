@@ -15,7 +15,6 @@ function slugify(name: string): string {
 }
 
 const MAX_SLUG_ATTEMPTS = 20
-const MAX_OWNED_BUSINESSES = 10
 
 async function findUniqueSlug(admin: ReturnType<typeof createAdminClient>, base: string): Promise<string> {
   for (let attempt = 0; attempt <= MAX_SLUG_ATTEMPTS; attempt++) {
@@ -55,16 +54,38 @@ export async function createBusiness(formData: FormData) {
 
   const admin = createAdminClient()
 
-  // Guard against runaway business creation per user
-  const { count: ownedCount } = await admin
-    .from('business_memberships')
-    .select('id', { count: 'exact', head: true })
-    .eq('user_id', user.id)
-    .eq('role', 'owner')
-    .eq('status', 'active')
+  // Admin (by ADMIN_EMAIL) bypasses vendor approval checks
+  const isAdmin = user.email === process.env.ADMIN_EMAIL
 
-  if ((ownedCount ?? 0) >= MAX_OWNED_BUSINESSES) {
-    redirect('/business/new?error=You+have+reached+the+maximum+number+of+businesses')
+  if (!isAdmin) {
+    // Load vendor approval state from public.users
+    const { data: profile } = await admin
+      .from('users')
+      .select('is_vendor_approved, store_limit')
+      .eq('id', user.id)
+      .single()
+
+    if (!profile?.is_vendor_approved) {
+      redirect('/vendor/apply')
+    }
+
+    if ((profile.store_limit ?? 0) <= 0) {
+      redirect('/vendor/apply?error=Your+store+limit+has+not+been+set.+Contact+support.')
+    }
+
+    // Count stores they already own
+    const { count: ownedCount } = await admin
+      .from('business_memberships')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('role', 'owner')
+      .eq('status', 'active')
+
+    if ((ownedCount ?? 0) >= profile.store_limit) {
+      redirect(
+        `/business/new?error=${encodeURIComponent(`You have reached your store limit of ${profile.store_limit}.`)}`
+      )
+    }
   }
 
   // Resolve unique slug (bounded — falls back to timestamp suffix if all attempts taken)

@@ -3,7 +3,7 @@ import { canPerform } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Contact, ShoppingBag, Package } from 'lucide-react'
+import { ArrowLeft, Contact, ShoppingBag, Package, MessageSquare } from 'lucide-react'
 
 type Props = { params: Promise<{ slug: string; userId: string }> }
 
@@ -84,6 +84,16 @@ export default async function CustomerDetailPage({ params }: Props) {
     notFound()
   }
 
+  // Fetch conversation for this customer (if any)
+  const { data: conversation } = await supabase
+    .from('conversations')
+    .select('id')
+    .eq('business_id', businessId)
+    .eq('customer_user_id', userId)
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
   // Parallel: recent sales + top products
   const [{ data: recentSales }, { data: topProducts }] = await Promise.all([
     supabase
@@ -117,10 +127,19 @@ export default async function CustomerDetailPage({ params }: Props) {
         >
           <ArrowLeft size={18} />
         </Link>
-        <h1 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+        <h1 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2 flex-1">
           <Contact size={20} />
           {displayName}
         </h1>
+        <Link
+          href={conversation
+            ? `/business/${slug}/messages/${conversation.id}`
+            : `/business/${slug}/messages`}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition-colors"
+        >
+          <MessageSquare size={15} />
+          Message
+        </Link>
       </div>
 
       {/* Profile + metrics grid */}
