@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { MessageSquare, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
+import Image from 'next/image'
 import AutoRefresh from '@/app/app/messages/AutoRefresh'
 
 type Props = { searchParams: Promise<{ error?: string }> }
@@ -40,7 +41,7 @@ export default async function CustomerMessagesPage({ searchParams }: Props) {
 
   // Admin client for business names and last message previews — businesses RLS
   // blocks non-members, and we need SECURITY DEFINER RPC for efficient previews.
-  const bizMap: Record<string, string> = {}
+  const bizMap: Record<string, { name: string; logo_url: string | null }> = {}
   const lastMsgMap: Record<string, LastMsg> = {}
 
   if (convIds.length > 0) {
@@ -48,11 +49,11 @@ export default async function CustomerMessagesPage({ searchParams }: Props) {
     const bizIds = [...new Set(allConvs.map((c) => c.business_id))]
 
     const [{ data: bizRows }, { data: lastMsgs }] = await Promise.all([
-      admin.from('businesses').select('id, name').in('id', bizIds),
+      admin.from('businesses').select('id, name, logo_url').in('id', bizIds),
       admin.rpc('get_last_messages_for_conversations', { conv_ids: convIds }),
     ])
 
-    for (const b of bizRows ?? []) bizMap[b.id] = b.name
+    for (const b of bizRows ?? []) bizMap[b.id] = { name: b.name, logo_url: b.logo_url ?? null }
     for (const m of (lastMsgs ?? []) as LastMsg[]) lastMsgMap[m.conversation_id] = m
   }
 
@@ -98,7 +99,9 @@ export default async function CustomerMessagesPage({ searchParams }: Props) {
               ? truncate(lastMsg.sender_type === 'customer' ? `You: ${lastMsg.body}` : lastMsg.body)
               : null
 
-            const bizName = bizMap[conv.business_id] ?? 'Unknown business'
+            const biz = bizMap[conv.business_id]
+            const bizName = biz?.name ?? 'Unknown business'
+            const logoUrl = biz?.logo_url ?? null
 
             return (
               <Link
@@ -106,29 +109,38 @@ export default async function CustomerMessagesPage({ searchParams }: Props) {
                 href={`/app/messages/${conv.id}`}
                 className="flex items-center gap-3 px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors"
               >
-                <div className={`shrink-0 w-10 h-10 rounded-full bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center text-sm font-semibold text-indigo-600 dark:text-indigo-400 ${unread ? 'ring-2 ring-indigo-500 dark:ring-indigo-400' : ''}`}>
-                  {bizName.charAt(0).toUpperCase()}
+                <div className={`shrink-0 w-11 h-11 rounded-full overflow-hidden ${!logoUrl ? 'bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center text-sm font-semibold text-indigo-600 dark:text-indigo-400' : ''} ${unread ? 'ring-2 ring-offset-1 ring-indigo-500 dark:ring-indigo-400 dark:ring-offset-neutral-900' : ''}`}>
+                  {logoUrl ? (
+                    <Image src={logoUrl} alt={bizName} width={44} height={44} className="w-full h-full object-cover" />
+                  ) : (
+                    bizName.charAt(0).toUpperCase()
+                  )}
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <p className={`text-sm truncate ${unread ? 'font-semibold text-gray-900 dark:text-white' : 'font-medium text-gray-900 dark:text-white'}`}>
-                    {bizName}
-                  </p>
-                  {preview ? (
-                    <p className={`text-xs truncate ${unread ? 'font-medium text-gray-800 dark:text-neutral-200' : 'text-gray-400 dark:text-neutral-500'}`}>
+                  <div className="flex items-center gap-2">
+                    <p className={`text-sm truncate ${unread ? 'font-semibold text-gray-900 dark:text-white' : 'font-medium text-gray-700 dark:text-neutral-300'}`}>
+                      {bizName}
+                    </p>
+                    {conv.status !== 'open' && (
+                      <span className="shrink-0 text-xs px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-neutral-800 text-gray-500 dark:text-neutral-400 capitalize">
+                        {conv.status}
+                      </span>
+                    )}
+                  </div>
+                  {preview && (
+                    <p className={`text-xs truncate mt-0.5 ${unread ? 'font-medium text-gray-700 dark:text-neutral-200' : 'text-gray-400 dark:text-neutral-500'}`}>
                       {preview}
                     </p>
-                  ) : conv.status !== 'open' ? (
-                    <p className="text-xs text-gray-400 dark:text-neutral-500 capitalize">{conv.status}</p>
-                  ) : null}
+                  )}
                 </div>
 
-                <div className="shrink-0 flex flex-col items-end gap-1">
-                  <span className={`text-xs ${unread ? 'font-medium text-indigo-600 dark:text-indigo-400' : 'text-gray-400 dark:text-neutral-500'}`}>
+                <div className="shrink-0 flex flex-col items-end gap-1.5">
+                  <span className={`text-xs tabular-nums ${unread ? 'font-medium text-indigo-600 dark:text-indigo-400' : 'text-gray-400 dark:text-neutral-500'}`}>
                     {fmtTime(conv.updated_at)}
                   </span>
                   {unread && (
-                    <span className="w-2 h-2 rounded-full bg-indigo-600 dark:bg-indigo-400" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-indigo-600 dark:bg-indigo-400" />
                   )}
                 </div>
               </Link>

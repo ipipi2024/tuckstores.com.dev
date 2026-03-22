@@ -3,10 +3,12 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { ArrowLeft } from 'lucide-react'
 import { sendBusinessMessage } from '../actions'
 import AutoRefresh from '@/app/app/messages/AutoRefresh'
 import MessageSendForm from '@/components/ui/MessageSendForm'
+import ScrollToBottom from '@/components/ui/ScrollToBottom'
 
 type Props = { params: Promise<{ slug: string; id: string }> }
 
@@ -29,7 +31,6 @@ export default async function BusinessThreadPage({ params }: Props) {
   const { slug, id } = await params
   const ctx = await getBusinessContext(slug)
 
-  // Regular client — conversations RLS: is_business_member(business_id)
   const supabase = await createClient()
 
   const { data: conv } = await supabase
@@ -41,40 +42,34 @@ export default async function BusinessThreadPage({ params }: Props) {
 
   if (!conv) redirect(`/business/${slug}/messages`)
 
-  // Mark conversation as read for this business — drives the vendor Messages badge.
-  // Business members have UPDATE access on conversations via RLS.
   await supabase
     .from('conversations')
     .update({ business_last_read_at: new Date().toISOString() })
     .eq('id', id)
     .eq('business_id', ctx.business.id)
 
-  // Regular client — conversation_messages RLS: via conversation access
-  // Limit to most recent 150 messages. TODO: add older-message paging for long threads.
   const { data: msgs } = await supabase
     .from('conversation_messages')
-    .select('id, body, sender_type, sender_user_id, created_at')
+    .select('id, body, sender_type, created_at')
     .eq('conversation_id', id)
     .order('created_at', { ascending: false })
     .limit(150)
 
-  // Reverse so the thread renders chronologically (oldest first)
   const messages = (msgs ?? []).reverse()
 
-
-  // Admin client for customer name — users RLS: select own only
   const admin = createAdminClient()
   const { data: customer } = await admin
     .from('users')
-    .select('full_name, email')
+    .select('full_name, email, avatar_url')
     .eq('id', conv.customer_user_id)
     .single()
 
   const customerName = customer?.full_name ?? customer?.email ?? 'Customer'
+  const avatarUrl = customer?.avatar_url ?? null
 
   const sendAction = sendBusinessMessage.bind(null, slug, id)
 
-  // Group messages by day for date separators
+  // Group messages by day
   const grouped: { day: string; messages: typeof messages }[] = []
   for (const msg of messages) {
     const day = fmtDay(msg.created_at)
@@ -87,64 +82,99 @@ export default async function BusinessThreadPage({ params }: Props) {
   }
 
   return (
-    <div className="max-w-2xl">
+    <div className="max-w-2xl flex flex-col min-h-[calc(100dvh-8rem)]">
       <AutoRefresh refreshOnMount />
+      <ScrollToBottom />
 
       {/* Header */}
-      <div className="flex items-center gap-3 pb-4 mb-1 border-b border-gray-100 dark:border-neutral-800">
+      <div className="flex items-center gap-3 pb-3 mb-2 border-b border-gray-100 dark:border-neutral-800">
         <Link
           href={`/business/${slug}/messages`}
-          className="text-gray-400 dark:text-neutral-500 hover:text-gray-700 dark:hover:text-white transition-colors"
+          className="shrink-0 p-1 -ml-1 text-gray-400 dark:text-neutral-500 hover:text-gray-700 dark:hover:text-white transition-colors"
         >
           <ArrowLeft size={18} />
         </Link>
-        <div>
-          <p className="text-sm font-semibold text-gray-900 dark:text-white">{customerName}</p>
+
+        {/* Customer avatar */}
+        <div className="shrink-0 w-9 h-9 rounded-full overflow-hidden bg-gray-100 dark:bg-neutral-800 flex items-center justify-center text-sm font-semibold text-gray-600 dark:text-neutral-300">
+          {avatarUrl ? (
+            <Image src={avatarUrl} alt={customerName} width={36} height={36} className="w-full h-full object-cover" />
+          ) : (
+            customerName.charAt(0).toUpperCase()
+          )}
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{customerName}</p>
           {conv.status !== 'open' && (
-            <p className="text-xs text-gray-400 capitalize">{conv.status}</p>
+            <p className="text-xs text-gray-400 dark:text-neutral-500 capitalize">{conv.status}</p>
           )}
         </div>
       </div>
 
       {/* Messages */}
-      <div className="space-y-1 py-3 min-h-48">
+      <div className="flex-1 overflow-y-auto py-2 space-y-0.5">
         {messages.length === 0 && (
-          <p className="text-center text-sm text-gray-400 dark:text-neutral-500 py-8">
+          <p className="text-center text-sm text-gray-400 dark:text-neutral-500 py-12">
             No messages yet.
           </p>
         )}
 
         {grouped.map(({ day, messages: dayMsgs }) => (
-          <div key={day} className="space-y-1">
+          <div key={day}>
             {/* Day separator */}
-            <div className="flex items-center gap-2 my-3">
+            <div className="flex items-center gap-2 my-4">
               <div className="flex-1 h-px bg-gray-100 dark:bg-neutral-800" />
-              <span className="text-xs text-gray-400 dark:text-neutral-500 shrink-0">{day}</span>
+              <span className="text-xs text-gray-400 dark:text-neutral-500 shrink-0 px-1">{day}</span>
               <div className="flex-1 h-px bg-gray-100 dark:bg-neutral-800" />
             </div>
 
-            {dayMsgs.map((msg) => {
-              const isMe = msg.sender_type === 'business_member'
-              return (
-                <div
-                  key={msg.id}
-                  className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} mb-1`}
-                >
+            <div className="space-y-0.5">
+              {dayMsgs.map((msg, i) => {
+                const isMe = msg.sender_type === 'business_member'
+                const nextMsg = dayMsgs[i + 1]
+                const isLastInRun = !nextMsg || nextMsg.sender_type !== msg.sender_type
+
+                return (
                   <div
-                    className={`max-w-[72%] px-3.5 py-2 text-sm leading-relaxed ${
-                      isMe
-                        ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-2xl rounded-br-sm'
-                        : 'bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800/40 text-gray-900 dark:text-white rounded-2xl rounded-bl-sm'
-                    }`}
+                    key={msg.id}
+                    className={`flex items-end gap-1.5 ${isMe ? 'justify-end' : 'justify-start'} ${isLastInRun ? 'mb-3' : 'mb-0.5'}`}
                   >
-                    {msg.body}
+                    {/* Customer avatar (left side) */}
+                    {!isMe && (
+                      <div className="shrink-0 w-7 h-7 mb-0.5">
+                        {isLastInRun && (
+                          <div className="w-7 h-7 rounded-full overflow-hidden bg-gray-100 dark:bg-neutral-800 flex items-center justify-center text-xs font-semibold text-gray-600 dark:text-neutral-300">
+                            {avatarUrl ? (
+                              <Image src={avatarUrl} alt={customerName} width={28} height={28} className="w-full h-full object-cover" />
+                            ) : (
+                              customerName.charAt(0).toUpperCase()
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    <div className={`flex flex-col gap-0.5 max-w-[72%] ${isMe ? 'items-end' : 'items-start'}`}>
+                      <div
+                        className={`px-3.5 py-2 text-sm leading-relaxed whitespace-pre-wrap break-words ${
+                          isMe
+                            ? `bg-gray-900 dark:bg-white text-white dark:text-gray-900 ${isLastInRun ? 'rounded-2xl rounded-br-sm' : 'rounded-2xl'}`
+                            : `bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800/40 text-gray-900 dark:text-white ${isLastInRun ? 'rounded-2xl rounded-bl-sm' : 'rounded-2xl'}`
+                        }`}
+                      >
+                        {msg.body}
+                      </div>
+                      {isLastInRun && (
+                        <span className="text-xs text-gray-400 dark:text-neutral-500 px-1">
+                          {fmtTime(msg.created_at)}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <span className="text-xs text-gray-400 dark:text-neutral-500 mt-0.5 px-1">
-                    {isMe ? 'You' : customerName} · {fmtTime(msg.created_at)}
-                  </span>
-                </div>
-              )
-            })}
+                )
+              })}
+            </div>
           </div>
         ))}
 

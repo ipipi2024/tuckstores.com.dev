@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { MessageSquare } from 'lucide-react'
 import Link from 'next/link'
+import Image from 'next/image'
 import AutoRefresh from '@/app/app/messages/AutoRefresh'
 
 type Props = { params: Promise<{ slug: string }> }
@@ -40,7 +41,7 @@ export default async function BusinessMessagesPage({ params }: Props) {
 
   // Admin client for customer names and last message previews — users RLS: select
   // own only, and we need SECURITY DEFINER RPC for efficient previews.
-  const customerMap: Record<string, { name: string; email: string }> = {}
+  const customerMap: Record<string, { name: string; email: string; avatar_url: string | null }> = {}
   const lastMsgMap: Record<string, LastMsg> = {}
 
   if (convIds.length > 0) {
@@ -48,12 +49,12 @@ export default async function BusinessMessagesPage({ params }: Props) {
     const customerIds = [...new Set(allConvs.map((c) => c.customer_user_id))]
 
     const [{ data: users }, { data: lastMsgs }] = await Promise.all([
-      admin.from('users').select('id, full_name, email').in('id', customerIds),
+      admin.from('users').select('id, full_name, email, avatar_url').in('id', customerIds),
       admin.rpc('get_last_messages_for_conversations', { conv_ids: convIds }),
     ])
 
     for (const u of users ?? []) {
-      customerMap[u.id] = { name: u.full_name ?? u.email ?? 'Unknown', email: u.email }
+      customerMap[u.id] = { name: u.full_name ?? u.email ?? 'Unknown', email: u.email, avatar_url: u.avatar_url ?? null }
     }
     for (const m of (lastMsgs ?? []) as LastMsg[]) lastMsgMap[m.conversation_id] = m
   }
@@ -93,6 +94,7 @@ export default async function BusinessMessagesPage({ params }: Props) {
 
             const customer = customerMap[conv.customer_user_id]
             const displayName = customer?.name ?? 'Unknown customer'
+            const avatarUrl = customer?.avatar_url ?? null
 
             return (
               <Link
@@ -100,32 +102,41 @@ export default async function BusinessMessagesPage({ params }: Props) {
                 href={`/business/${slug}/messages/${conv.id}`}
                 className="flex items-center gap-3 px-5 py-4 hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors"
               >
-                <div className="shrink-0 w-9 h-9 rounded-full bg-gray-100 dark:bg-neutral-800 flex items-center justify-center text-sm font-semibold text-gray-600 dark:text-neutral-300">
-                  {displayName.charAt(0).toUpperCase()}
+                <div className={`shrink-0 w-11 h-11 rounded-full overflow-hidden ${!avatarUrl ? 'bg-gray-100 dark:bg-neutral-800 flex items-center justify-center text-sm font-semibold text-gray-600 dark:text-neutral-300' : ''} ${unread ? 'ring-2 ring-offset-1 ring-indigo-500 dark:ring-indigo-400 dark:ring-offset-neutral-900' : ''}`}>
+                  {avatarUrl ? (
+                    <Image src={avatarUrl} alt={displayName} width={44} height={44} className="w-full h-full object-cover" />
+                  ) : (
+                    displayName.charAt(0).toUpperCase()
+                  )}
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <p className={`text-sm truncate ${unread ? 'font-semibold text-gray-900 dark:text-white' : 'font-medium text-gray-900 dark:text-white'}`}>
-                    {displayName}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <p className={`text-sm truncate ${unread ? 'font-semibold text-gray-900 dark:text-white' : 'font-medium text-gray-700 dark:text-neutral-300'}`}>
+                      {displayName}
+                    </p>
+                    {conv.status !== 'open' && (
+                      <span className="shrink-0 text-xs px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-neutral-800 text-gray-500 dark:text-neutral-400 capitalize">
+                        {conv.status}
+                      </span>
+                    )}
+                  </div>
                   {preview ? (
-                    <p className={`text-xs truncate ${unread ? 'font-medium text-gray-800 dark:text-neutral-200' : 'text-gray-400 dark:text-neutral-500'}`}>
+                    <p className={`text-xs truncate mt-0.5 ${unread ? 'font-medium text-gray-700 dark:text-neutral-200' : 'text-gray-400 dark:text-neutral-500'}`}>
                       {preview}
                     </p>
                   ) : customer?.email ? (
-                    <p className="text-xs text-gray-400 dark:text-neutral-500 truncate">{customer.email}</p>
+                    <p className="text-xs text-gray-400 dark:text-neutral-500 truncate mt-0.5">{customer.email}</p>
                   ) : null}
                 </div>
 
                 <div className="shrink-0 flex flex-col items-end gap-1.5">
-                  <span className={`text-xs ${unread ? 'font-medium text-indigo-600 dark:text-indigo-400' : 'text-gray-400 dark:text-neutral-500'}`}>
+                  <span className={`text-xs tabular-nums ${unread ? 'font-medium text-indigo-600 dark:text-indigo-400' : 'text-gray-400 dark:text-neutral-500'}`}>
                     {fmtTime(conv.updated_at)}
                   </span>
-                  {unread ? (
-                    <span className="w-2 h-2 rounded-full bg-indigo-600 dark:bg-indigo-400" />
-                  ) : conv.status !== 'open' ? (
-                    <span className="text-xs text-gray-400 dark:text-neutral-500 capitalize">{conv.status}</span>
-                  ) : null}
+                  {unread && (
+                    <span className="w-2.5 h-2.5 rounded-full bg-indigo-600 dark:bg-indigo-400" />
+                  )}
                 </div>
               </Link>
             )
