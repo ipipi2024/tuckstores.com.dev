@@ -91,8 +91,8 @@ export function CustomersCharts({
               width={28}
             />
             <Tooltip
-              formatter={(value: number) => [value, 'New customers']}
-              labelFormatter={fmtMonth}
+              formatter={(value) => [value, 'New customers']}
+              labelFormatter={(label) => fmtMonth(String(label))}
               contentStyle={tooltipStyle}
               cursor={{ fill: 'rgba(255,255,255,0.04)' }}
             />
@@ -161,7 +161,7 @@ export function CustomersCharts({
                   tickFormatter={(v: string) => v.length > 13 ? v.slice(0, 13) + '…' : v}
                 />
                 <Tooltip
-                  formatter={(value: number) => [fmtFull(value, currency), 'Total spent']}
+                  formatter={(value) => [fmtFull(Number(value), currency), 'Total spent']}
                   contentStyle={tooltipStyle}
                   cursor={{ fill: 'rgba(255,255,255,0.04)' }}
                 />
