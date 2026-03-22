@@ -531,7 +531,7 @@ export default function POSClient({ products, currencyCode, completeSale, custom
               View receipt
             </Link>
             <button
-              onClick={() => clearCart(true)}
+              onClick={() => { clearCart(true); router.refresh() }}
               className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition-colors"
             >
               New sale
