@@ -1,17 +1,13 @@
 import { getAuthUser } from '@/lib/auth/get-user'
 import { createAdminClient } from '@/lib/supabase/admin'
-import AppNav from './AppNav'
-import HeaderCartIcon from './HeaderCartIcon'
-import Link from 'next/link'
-import { Briefcase } from 'lucide-react'
+import CustomerNav from '@/components/CustomerNav'
 import { NotificationProvider } from '@/components/NotificationProvider'
-import NotificationBell from '@/components/NotificationBell'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await getAuthUser()
   const admin = createAdminClient()
 
-  const [{ data: unseenOrders }, convResult, { count: unreadNotifications }] = await Promise.all([
+  const [{ data: unseenOrders }, convResult, { count: unreadNotifications }, { data: profile }] = await Promise.all([
     admin.rpc('count_customer_unseen_orders', { p_user_id: user.id }),
     admin
       .from('conversations')
@@ -23,6 +19,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       .select('id', { count: 'exact', head: true })
       .eq('user_id', user.id)
       .is('read_at', null),
+    admin
+      .from('users')
+      .select('full_name')
+      .eq('id', user.id)
+      .maybeSingle(),
   ])
 
   const unreadMessages = (convResult.data ?? []).filter(
@@ -31,27 +32,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <NotificationProvider userId={user.id} initialUnreadCount={unreadNotifications ?? 0}>
-      <div className="min-h-screen bg-gray-50 dark:bg-neutral-950 pb-20">
-        <header className="sticky top-0 z-30 bg-white dark:bg-neutral-900 border-b border-gray-100 dark:border-neutral-800 px-4 h-12 flex items-center justify-between">
-          <span className="text-base font-bold text-gray-900 dark:text-white tracking-tight">
-            TuckStores
-          </span>
-          <div className="flex items-center gap-2">
-            <HeaderCartIcon />
-            <NotificationBell />
-            <Link
-              href="/business/select"
-              className="p-1.5 text-gray-500 dark:text-neutral-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
-              title="Business Dashboard"
-            >
-              <Briefcase size={18} strokeWidth={1.75} />
-            </Link>
+      <div className="min-h-screen bg-gray-50 dark:bg-neutral-950">
+        <CustomerNav
+          userName={profile?.full_name ?? null}
+          ordersBadge={unseenOrders ?? 0}
+          messagesBadge={unreadMessages}
+        />
+        <main className="lg:pl-56 pt-14 lg:pt-0 transition-all duration-300">
+          <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6">
+            {children}
           </div>
-        </header>
-        <main className="max-w-lg mx-auto px-4 py-5">
-          {children}
         </main>
-        <AppNav ordersBadge={unseenOrders ?? 0} messagesBadge={unreadMessages} />
       </div>
     </NotificationProvider>
   )
