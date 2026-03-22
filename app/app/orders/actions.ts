@@ -81,6 +81,15 @@ export async function cancelOrder(orderId: string): Promise<void> {
     )
   }
 
+  // Customer initiated this cancellation, so they have already "seen" the cancelled
+  // state. Sync customer_seen_status now so the orders badge does not self-increment
+  // for their own action. There is no notification sent back to the customer, so
+  // without this the badge would stay stuck until they visit /app/orders.
+  await supabase
+    .from('orders')
+    .update({ customer_seen_status: 'cancelled' })
+    .eq('id', orderId)
+
   // Notify all active business members that the customer cancelled — fire-and-forget
   const { business_id, order_number } = data[0]
   dispatchNotificationToBusinessMembers(business_id, {
