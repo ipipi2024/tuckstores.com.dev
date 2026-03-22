@@ -104,10 +104,10 @@ export default async function AnalyticsPage({ params }: Props) {
       .eq('business_id', businessId)
       .gte('created_at', monthISO),
 
-    // Top customers by total spend (all-time)
+    // Top customers by total spend (all-time) — includes walk-ins
     supabase
       .from('business_customers')
-      .select('user_id, display_name_snapshot, email_snapshot, total_spent, completed_sale_count')
+      .select('id, user_id, display_name_snapshot, email_snapshot, total_spent, completed_sale_count')
       .eq('business_id', businessId)
       .gt('total_spent', 0)
       .order('total_spent', { ascending: false })
@@ -462,15 +462,29 @@ export default async function AnalyticsPage({ params }: Props) {
               const name = c.display_name_snapshot ?? c.email_snapshot ?? 'Unknown'
               const maxSpent = topCustomers[0]?.total_spent ?? 1
               const pct = maxSpent > 0 ? ((c.total_spent ?? 0) / maxSpent) * 100 : 0
+              const isRegistered = c.user_id !== null
               return (
-                <div key={c.user_id}>
+                <div key={c.id}>
                   <div className="flex items-center justify-between text-sm mb-1">
-                    <a
-                      href={`/business/${slug}/customers/${c.user_id}`}
-                      className="font-medium text-gray-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400 truncate max-w-[200px]"
-                    >
-                      {name}
-                    </a>
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      {isRegistered ? (
+                        <a
+                          href={`/business/${slug}/customers/${c.user_id}`}
+                          className="font-medium text-gray-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400 truncate max-w-[180px]"
+                        >
+                          {name}
+                        </a>
+                      ) : (
+                        <span className="font-medium text-gray-900 dark:text-white truncate max-w-[140px]">
+                          {name}
+                        </span>
+                      )}
+                      {!isRegistered && (
+                        <span className="shrink-0 text-xs px-1.5 py-0.5 rounded bg-gray-100 dark:bg-neutral-800 text-gray-500 dark:text-gray-400">
+                          Walk-in
+                        </span>
+                      )}
+                    </div>
                     <span className="text-gray-500 dark:text-gray-400 tabular-nums shrink-0 ml-3">
                       {fmt(c.total_spent ?? 0)} · {c.completed_sale_count} sale{c.completed_sale_count !== 1 ? 's' : ''}
                     </span>

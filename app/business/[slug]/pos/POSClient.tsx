@@ -14,7 +14,8 @@ import type { CompleteSalePayload, CompleteSaleResult, SaleItem } from './action
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type CustomerEntry = {
-  userId: string
+  id: string
+  userId: string | null
   displayName: string | null
   email: string | null
   phone: string | null
@@ -131,6 +132,7 @@ export default function POSClient({ products, currencyCode, completeSale, custom
   // ── Customer linking state ─────────────────────────────────────────────────
 
   const [customerUserId, setCustomerUserId] = useState<string | null>(null)
+  const [selectedKnownCustomer, setSelectedKnownCustomer] = useState<CustomerEntry | null>(null)
   const [customerFilter, setCustomerFilter] = useState('')
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false)
   const customerDropdownRef = useRef<HTMLDivElement>(null)
@@ -269,6 +271,7 @@ export default function POSClient({ products, currencyCode, completeSale, custom
     setCashTendered('')
     setScreen('cart')
     setCustomerUserId(null)
+    setSelectedKnownCustomer(null)
     setCustomerFilter('')
     setShowCustomerDropdown(false)
     closeQtyModal()
@@ -327,6 +330,7 @@ export default function POSClient({ products, currencyCode, completeSale, custom
 
   function handleSelectCustomer(c: CustomerEntry) {
     setCustomerUserId(c.userId)
+    setSelectedKnownCustomer(c)
     if (!customerName && c.displayName) setCustomerName(c.displayName)
     if (!customerPhone && c.phone)      setCustomerPhone(c.phone)
     setCustomerFilter('')
@@ -335,6 +339,7 @@ export default function POSClient({ products, currencyCode, completeSale, custom
 
   function handleUnlink() {
     setCustomerUserId(null)
+    setSelectedKnownCustomer(null)
     setCustomerFilter('')
   }
 
@@ -633,11 +638,18 @@ export default function POSClient({ products, currencyCode, completeSale, custom
             <div className="flex items-center gap-1.5 mb-2">
               <User size={13} className="text-gray-400" />
               <p className={sectionLabel}>Customer <span className="text-gray-400 font-normal normal-case tracking-normal">(optional)</span></p>
-              {customerUserId && (
-                <span className="ml-auto flex items-center gap-1 text-xs text-green-600 dark:text-green-400 font-medium">
-                  <CheckCircle2 size={11} />
-                  Registered
-                </span>
+              {selectedKnownCustomer && (
+                selectedKnownCustomer.userId ? (
+                  <span className="ml-auto flex items-center gap-1 text-xs text-green-600 dark:text-green-400 font-medium">
+                    <CheckCircle2 size={11} />
+                    Registered
+                  </span>
+                ) : (
+                  <span className="ml-auto flex items-center gap-1 text-xs text-indigo-500 dark:text-indigo-400 font-medium">
+                    <CheckCircle2 size={11} />
+                    Known walk-in
+                  </span>
+                )
               )}
             </div>
 
@@ -660,13 +672,13 @@ export default function POSClient({ products, currencyCode, completeSale, custom
 
             {customers.length > 0 && (
               <div className="mt-3">
-                {!customerUserId ? (
+                {!selectedKnownCustomer ? (
                   <div className="relative" ref={customerDropdownRef}>
                     <div className="relative">
                       <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                       <input
                         type="text"
-                        placeholder="Link registered customer…"
+                        placeholder="Find existing customer…"
                         value={customerFilter}
                         onChange={(e) => { setCustomerFilter(e.target.value); setShowCustomerDropdown(true) }}
                         onFocus={() => setShowCustomerDropdown(true)}
@@ -690,18 +702,29 @@ export default function POSClient({ products, currencyCode, completeSale, custom
                           <div className="max-h-48 overflow-y-auto divide-y divide-gray-50 dark:divide-neutral-800">
                             {filteredCustomers.map((c) => (
                               <button
-                                key={c.userId}
+                                key={c.id}
                                 type="button"
                                 onMouseDown={(e) => { e.preventDefault(); handleSelectCustomer(c) }}
                                 className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors"
                               >
-                                <div className="w-7 h-7 rounded-full bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center flex-shrink-0">
-                                  <User size={12} className="text-indigo-600 dark:text-indigo-400" />
+                                <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${
+                                  c.userId
+                                    ? 'bg-green-100 dark:bg-green-900/40'
+                                    : 'bg-gray-100 dark:bg-neutral-800'
+                                }`}>
+                                  <User size={12} className={c.userId ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'} />
                                 </div>
-                                <div className="min-w-0">
-                                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                                    {c.displayName ?? c.email ?? 'Unknown'}
-                                  </p>
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-1.5">
+                                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                      {c.displayName ?? c.email ?? 'Unknown'}
+                                    </p>
+                                    {!c.userId && (
+                                      <span className="shrink-0 text-xs px-1 py-0.5 rounded bg-gray-100 dark:bg-neutral-700 text-gray-500 dark:text-gray-400">
+                                        Walk-in
+                                      </span>
+                                    )}
+                                  </div>
                                   {c.phone && (
                                     <p className="text-xs text-gray-400 dark:text-neutral-500 truncate">{c.phone}</p>
                                   )}
@@ -715,9 +738,15 @@ export default function POSClient({ products, currencyCode, completeSale, custom
                   </div>
                 ) : (
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-green-600 dark:text-green-400">
-                      Linked to registered account
-                    </span>
+                    {selectedKnownCustomer.userId ? (
+                      <span className="text-xs text-green-600 dark:text-green-400">
+                        Linked to registered account
+                      </span>
+                    ) : (
+                      <span className="text-xs text-indigo-500 dark:text-indigo-400">
+                        Known walk-in — details pre-filled
+                      </span>
+                    )}
                     <button
                       type="button"
                       onClick={handleUnlink}

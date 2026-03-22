@@ -57,15 +57,17 @@ export default async function POSPage({ params }: Props) {
   })
 
   // Fetch known customers for the name-search combobox in the POS
+  // Includes both registered users and previously recorded walk-ins
   const { data: customerRows } = await supabase
     .from('business_customers')
-    .select('user_id, display_name_snapshot, email_snapshot, phone_snapshot')
+    .select('id, user_id, display_name_snapshot, email_snapshot, phone_snapshot')
     .eq('business_id', ctx.business.id)
     .order('display_name_snapshot', { ascending: true })
     .limit(500)
 
   const customerList = (customerRows ?? []).map((c) => ({
-    userId: c.user_id as string,
+    id: c.id as string,
+    userId: c.user_id as string | null,
     displayName: c.display_name_snapshot as string | null,
     email: c.email_snapshot as string | null,
     phone: c.phone_snapshot as string | null,

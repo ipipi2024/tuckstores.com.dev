@@ -39,6 +39,7 @@ export default async function CustomersPage({ params }: Props) {
   const { data: customers } = await supabase
     .from('business_customers')
     .select(`
+      id,
       user_id,
       display_name_snapshot,
       email_snapshot,
@@ -66,23 +67,18 @@ export default async function CustomersPage({ params }: Props) {
             Customers
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-            {list.length} registered customer{list.length !== 1 ? 's' : ''}
+            {list.length} customer{list.length !== 1 ? 's' : ''}
           </p>
         </div>
       </div>
 
-      {/* Info banner */}
-      <div className="rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900 px-4 py-3 text-sm text-indigo-700 dark:text-indigo-300">
-        Only customers with a registered platform account appear here. Walk-in sales are recorded on individual sale receipts.
-      </div>
-
-      <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl overflow-hidden">
+<div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl overflow-hidden">
         {list.length === 0 ? (
           <div className="px-6 py-16 text-center">
             <Contact size={32} className="mx-auto text-gray-300 dark:text-neutral-600 mb-3" />
-            <p className="text-sm text-gray-500 dark:text-gray-400">No registered customers yet.</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">No customers yet.</p>
             <p className="text-xs text-gray-400 dark:text-neutral-500 mt-1">
-              Customers appear here when they place an online order or are linked during a POS sale.
+              Customers appear here when they place an online order or are recorded during a POS sale.
             </p>
           </div>
         ) : (
@@ -100,11 +96,18 @@ export default async function CustomersPage({ params }: Props) {
               </thead>
               <tbody className="divide-y divide-gray-50 dark:divide-neutral-800">
                 {list.map((c) => (
-                  <tr key={c.user_id} className="hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition-colors">
+                  <tr key={c.id} className="hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition-colors">
                     <td className="px-4 py-3">
-                      <p className="font-medium text-gray-900 dark:text-white truncate max-w-[180px]">
-                        {c.display_name_snapshot ?? c.email_snapshot ?? 'Unknown'}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-gray-900 dark:text-white truncate max-w-[180px]">
+                          {c.display_name_snapshot ?? c.email_snapshot ?? 'Unknown'}
+                        </p>
+                        {c.user_id === null && (
+                          <span className="shrink-0 text-xs px-1.5 py-0.5 rounded bg-gray-100 dark:bg-neutral-800 text-gray-500 dark:text-gray-400">
+                            Walk-in
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-gray-500 dark:text-gray-400 hidden sm:table-cell">
                       <p className="truncate max-w-[180px]">{c.email_snapshot ?? '—'}</p>
@@ -122,13 +125,15 @@ export default async function CustomersPage({ params }: Props) {
                       {fmtDate(c.last_interaction_at)}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <Link
-                        href={`/business/${slug}/customers/${c.user_id}`}
-                        className="inline-flex items-center gap-1 text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
-                      >
-                        View
-                        <ChevronRight size={12} />
-                      </Link>
+                      {c.user_id !== null && (
+                        <Link
+                          href={`/business/${slug}/customers/${c.user_id}`}
+                          className="inline-flex items-center gap-1 text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
+                        >
+                          View
+                          <ChevronRight size={12} />
+                        </Link>
+                      )}
                     </td>
                   </tr>
                 ))}
